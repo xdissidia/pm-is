@@ -6,9 +6,10 @@ services:
     container_name: pm-is
     volumes:
       - ./:/var/www/html
-      - /var/www/vendor
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
     ports:
-      - "8080:80"
+      - "8085:80"
     environment:
       - API_PUBLIC_PATH /var/www/html/public
       - API_LOG_PATH /var/www/html/storage/logs
