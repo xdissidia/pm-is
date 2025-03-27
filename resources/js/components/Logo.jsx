@@ -13,7 +13,7 @@ export default function Logo(props) {
       >
         <IconChartArcs style={{ stroke: "#fff", width: rem(25), height: rem(25), flexShrink: 0 }} />
       </Center>
-      <Text fz={20} fw={600}>
+      <Text fz={20} fw={600} style={{ whiteSpace: "nowrap" }}>
         ICT - PMIS
       </Text>
     </Group>
