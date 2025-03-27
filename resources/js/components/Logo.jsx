@@ -7,11 +7,10 @@ export default function Logo(props) {
   return (
     <Group wrap="nowrap" {...props}>
       <Center
-        bg={computedColorScheme === "dark" ? "blue.8" : "blue.9"}
         p={5}
         style={{ borderRadius: "100%" }}
       >
-        <IconChartArcs style={{ stroke: "#fff", width: rem(25), height: rem(25), flexShrink: 0 }} />
+        <img src="/assets/images/pagasa-logo.png" alt="Logo" style={{ width: rem(25), height: rem(25) }} />
       </Center>
       <Text fz={20} fw={600} style={{ whiteSpace: "nowrap" }}>
         ICT - PMIS
