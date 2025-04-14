@@ -48,7 +48,6 @@ export function EditTaskDrawer() {
 
   const [data, setData] = useState({
     group_id: "",
-    assignees: "",
     name: "",
     description: "",
     estimation: 0,
@@ -56,6 +55,7 @@ export function EditTaskDrawer() {
     hidden_from_clients: false,
     billable: true,
     subscribed_users: [],
+    assignees: [],
     labels: [],
   });
 
@@ -208,7 +208,6 @@ export function EditTaskDrawer() {
                 }))}
                 readOnly={!can("edit task")}
               />
-
 
               <MultiSelect
                 label="Assignees"
