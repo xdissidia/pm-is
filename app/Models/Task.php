@@ -155,4 +155,9 @@ class Task extends Model implements AuditableContract, Sortable
     {
         return $this->morphMany(Activity::class, 'activity_capable');
     }
+
+    public function assignees()
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
 }

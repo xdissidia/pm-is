@@ -68,7 +68,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
 
     public function isNotAdmin(): bool
     {
-        return ! $this->isAdmin();
+        return !$this->isAdmin();
     }
 
     public function clientCompanies(): BelongsToMany
@@ -101,7 +101,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         return self::orderBy('name')
             ->withoutRole($exclude)
             ->get(['id', 'name'])
-            ->map(fn ($i) => ['value' => (string) $i->id, 'label' => $i->name])
+            ->map(fn($i) => ['value' => (string) $i->id, 'label' => $i->name])
             ->toArray();
     }
 
@@ -110,7 +110,12 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         return self::orderBy('name')
             ->role('client')
             ->get(['id', 'name'])
-            ->map(fn ($i) => ['value' => (string) $i->id, 'label' => $i->name])
+            ->map(fn($i) => ['value' => (string) $i->id, 'label' => $i->name])
             ->toArray();
+    }
+
+    public function tasks()
+    {
+        return $this->belongsToMany(Task::class)->withTimestamps();
     }
 }
