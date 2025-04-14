@@ -22,8 +22,8 @@ class DashboardController extends Controller
                 ])
                 ->withCount([
                     'tasks AS all_tasks_count',
-                    'tasks AS completed_tasks_count' => fn ($query) => $query->whereNotNull('completed_at'),
-                    'tasks AS overdue_tasks_count' => fn ($query) => $query->whereNull('completed_at')->whereDate('due_on', '<', now()),
+                    'tasks AS completed_tasks_count' => fn($query) => $query->whereNotNull('completed_at'),
+                    'tasks AS overdue_tasks_count' => fn($query) => $query->whereNull('completed_at')->whereDate('due_on', '<', now()),
                 ])
                 ->withExists('favoritedByAuthUser AS favorite')
                 ->orderBy('favorite', 'desc')
@@ -32,24 +32,34 @@ class DashboardController extends Controller
             'overdueTasks' => Task::whereIn('project_id', $projectIds)
                 ->whereNull('completed_at')
                 ->whereDate('due_on', '<', now())
-                ->where('assigned_to_user_id', auth()->id())
+                ->whereHas('assignees', function ($query) {
+                    $query->where('user_id', auth()->id());
+                })
                 ->with('project:id,name')
                 ->with('taskGroup:id,name')
                 ->orderBy('due_on')
                 ->get(['id', 'name', 'due_on', 'group_id', 'project_id']),
             'recentlyAssignedTasks' => Task::whereIn('project_id', $projectIds)
                 ->whereNull('completed_at')
-                ->whereNotNull('assigned_at')
-                ->where('assigned_to_user_id', auth()->id())
+                ->whereHas('assignees', function ($query) {
+                    $query->where('user_id', auth()->id());
+                })
                 ->with('project:id,name')
-                ->with('taskGroup:id,name')
-                ->orderBy('assigned_at')
+                ->with([
+                    'assignees' => function ($query) {
+                        $query->where('user_id', auth()->id());
+                    },
+                ])
+                ->with(relations: 'taskGroup:id,name')
                 ->limit(10)
-                ->get(['id', 'name', 'assigned_at', 'group_id', 'project_id']),
+                ->get(['id', 'name', 'assigned_at', 'group_id', 'project_id'])
+                ->sortByDesc('assignees.*.created_at'),
             'recentComments' => Comment::query()
                 ->whereHas('task', function ($query) use ($projectIds) {
                     $query->whereIn('project_id', $projectIds)
-                        ->where('assigned_to_user_id', auth()->id());
+                        ->whereHas('assignees', function ($query) {
+                            $query->where('user_id', auth()->id());
+                        });
                 })
                 ->with([
                     'task:id,name,project_id',

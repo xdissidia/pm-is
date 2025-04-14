@@ -70,6 +70,7 @@ class Task extends Model implements AuditableContract, Sortable
         'labels:id,name,color',
         'attachments',
         'timeLogs.user:id,name',
+        'assignees:id,name,avatar',
     ];
 
     public function filters(): array

@@ -48,7 +48,7 @@ export function EditTaskDrawer() {
 
   const [data, setData] = useState({
     group_id: "",
-    assigned_to_user_id: "",
+    assignees: "",
     name: "",
     description: "",
     estimation: 0,
@@ -69,7 +69,6 @@ export function EditTaskDrawer() {
     if (edit.opened) {
       setData({
         group_id: task?.group_id || "",
-        assigned_to_user_id: task?.assigned_to_user_id || "",
         name: task?.name || "",
         description: task?.description || "",
         estimation: task?.estimation || 0,
@@ -78,6 +77,7 @@ export function EditTaskDrawer() {
           task?.hidden_from_clients !== undefined ? task.hidden_from_clients : false,
         billable: task?.billable !== undefined ? task.billable : true,
         subscribed_users: (task?.subscribed_users || []).map((i) => i.id.toString()),
+        assignees: (task?.assignees || []).map((i) => i.id.toString()),
         labels: (task?.labels || []).map((i) => i.id),
       });
       editorRef.current?.setContent(task?.description || "");
@@ -206,13 +206,13 @@ export function EditTaskDrawer() {
                 readOnly={!can("edit task")}
               />
 
-              <Select
-                label="Assignee"
-                placeholder="Select assignee"
-                searchable
-                mt="md"
-                value={data.assigned_to_user_id?.toString()}
-                onChange={(value) => updateValue("assigned_to_user_id", value)}
+
+              <MultiSelect
+                label="Assignees"
+                placeholder={!data.assignees.length ? "Select assignees" : null}
+                mt="lg"
+                value={data.assignees}
+                onChange={(values) => updateValue("assignees", values)}
                 data={usersWithAccessToProject.map((i) => ({
                   value: i.id.toString(),
                   label: i.name,

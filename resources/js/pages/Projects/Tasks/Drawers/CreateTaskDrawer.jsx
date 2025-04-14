@@ -33,7 +33,6 @@ export function CreateTaskDrawer() {
 
   const initial = {
     group_id: create.group_id ? create.group_id.toString() : "",
-    assigned_to_user_id: "",
     name: "",
     description: "",
     estimation: "",
