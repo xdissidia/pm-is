@@ -116,6 +116,6 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
 
     public function tasks()
     {
-        return $this->belongsToMany(Task::class)->withTimestamps();
+        return $this->belongsToMany(Task::class)->using(TaskUser::class)->withTimestamps();
     }
 }

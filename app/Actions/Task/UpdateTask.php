@@ -23,6 +23,10 @@ class UpdateTask
             $task->subscribedUsers()->sync($data['subscribed_users']);
         }
 
+        if ($updateField === 'assignees') {
+            $task->assignees()->sync($data['assignees']);
+        }
+
         if ($updateField === 'labels') {
             $task->labels()->sync($data['labels']);
         }

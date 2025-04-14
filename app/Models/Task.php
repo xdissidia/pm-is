@@ -30,7 +30,6 @@ class Task extends Model implements AuditableContract, Sortable
         'project_id',
         'group_id',
         'created_by_user_id',
-        'assigned_to_user_id',
         'invoice_id',
         'name',
         'number',
@@ -77,7 +76,7 @@ class Task extends Model implements AuditableContract, Sortable
     {
         return [
             (new WhereInFilter('group_id'))->setQueryName('groups'),
-            (new WhereInFilter('assigned_to_user_id'))->setQueryName('assignees'),
+            (new WhereHasFilter('assignees'))->setQueryName('assignees'),
             (new TaskOverdueFilter('due_on'))->setQueryName('overdue'),
             (new IsNullFilter('due_on'))->setQueryName('not_set'),
             (new TaskCompletedFilter('completed_at'))->setQueryName('status'),
@@ -159,6 +158,6 @@ class Task extends Model implements AuditableContract, Sortable
 
     public function assignees()
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class)->using(TaskUser::class)->withTimestamps();
     }
 }

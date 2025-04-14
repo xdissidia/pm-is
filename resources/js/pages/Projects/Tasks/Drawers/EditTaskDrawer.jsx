@@ -87,13 +87,16 @@ export function EditTaskDrawer() {
   const updateValue = (field, value) => {
     setData({ ...data, [field]: value });
 
-    const dropdowns = ["labels", "subscribed_users"];
+    const dropdowns = ["labels", "subscribed_users", 'assignees'];
     const onBlurInputs = ["name", "description"];
 
     if (dropdowns.includes(field)) {
       const options = {
         labels: value.map((id) => labels.find((i) => i.id === id)),
         subscribed_users: value.map((id) =>
+          usersWithAccessToProject.find((i) => i.id.toString() === id),
+        ),
+        assignees: value.map((id) =>
           usersWithAccessToProject.find((i) => i.id.toString() === id),
         ),
       };
