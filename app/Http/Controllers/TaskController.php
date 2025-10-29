@@ -45,7 +45,7 @@ class TaskController extends Controller
                         ->filterByQueryString()
                         ->when($request->user()->hasRole('client'), fn ($query) => $query->where('hidden_from_clients', false))
                         ->when($request->has('archived'), fn ($query) => $query->onlyArchived())
-                        ->when(! $request->has('status'), fn ($query) => $query->whereNull('completed_at'))
+                        // ->when(! $request->has('status'), fn ($query) => $query->whereNull('completed_at'))
                         ->withDefault()
                         ->when($project->isArchived(), fn ($query) => $query->with(['project' => fn ($query) => $query->withArchived()]))
                         ->get(),
