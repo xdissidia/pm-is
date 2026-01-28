@@ -57,7 +57,7 @@ const TasksIndex = () => {
 
       <Box maw={1000}>
         {projects.length ? (
-          <Accordion variant="separated" radius="md" multiple defaultValue={opened}>
+          <Accordion variant="separated" radius="md" multiple defaultValue={true}>
             {projects.map((project) => (
               <Accordion.Item
                 key={project.id}
