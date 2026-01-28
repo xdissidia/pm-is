@@ -73,19 +73,19 @@ class LoginRequest extends FormRequest
         if ($http->successful()) {
             $response = $http->json();
             if ($response['auth'] == true) {
-                $user = User::where('active_directory_guid', $response['data']['uid'])->first();
+                $user = User::where('active_directory_guid', $response['data']['guid'])->first();
                 if (!$user) {
                     $user = User::where('email', $response['data']['email'])->first();
                     if ($user) {
                         $user->update(
                             [
-                                'active_directory_guid' => $response['data']['uid'],
+                                'active_directory_guid' => $response['data']['guid'],
                                 // 'password' => Hash::make($this->password),
                             ]
                         );
                     } else {
                         $user = (new CreateUser())->create([
-                            'active_directory_guid' => $response['data']['uid'],
+                            'active_directory_guid' => $response['data']['guid'],
                             'name' => $response['data']['name'],
                             'job_title' => $response['data']['position'],
                             'phone' => null,
