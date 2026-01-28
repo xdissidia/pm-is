@@ -53,7 +53,7 @@ class DashboardController extends Controller
                 ->with(relations: 'taskGroup:id,name')
                 ->limit(10)
                 ->get(['id', 'name', 'assigned_at', 'group_id', 'project_id'])
-                ->sortByDesc('assignees.*.created_at'),
+                ->sortByDesc(fn($t) => data_get($t, 'assignees.0.pivot.created_at'))->values(),
             'recentComments' => Comment::query()
                 ->whereHas('task', function ($query) use ($projectIds) {
                     $query->whereIn('project_id', $projectIds)
