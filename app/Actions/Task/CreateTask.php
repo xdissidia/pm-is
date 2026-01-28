@@ -2,6 +2,7 @@
 
 namespace App\Actions\Task;
 
+use App\Enums\PricingType;
 use App\Events\Task\AttachmentsUploaded;
 use App\Events\Task\TaskCreated;
 use App\Models\Project;
@@ -19,6 +20,12 @@ class CreateTask
     public function create(Project $project, array $data): Task
     {
         return DB::transaction(function () use ($project, $data) {
+            if (isset($data['pricing_type']) && $data['pricing_type'] === PricingType::HOURLY->value) {
+                $data['fixed_price'] = null;
+            } elseif (isset($data['fixed_price']) && isset($data['pricing_type']) && $data['pricing_type'] === PricingType::FIXED->value) {
+                $data['fixed_price'] = (int) ($data['fixed_price'] * 100);
+            }
+
             $task = $project->tasks()->create([
                 'group_id' => $data['group_id'],
                 'created_by_user_id' => auth()->id(),
@@ -28,12 +35,13 @@ class CreateTask
                 'description' => $data['description'],
                 'due_on' => $data['due_on'],
                 'estimation' => $data['estimation'],
+                'priority_id' => $data['priority_id'] ?? null,
+                'pricing_type' => $data['pricing_type'] ?? null,
+                'fixed_price' => $data['fixed_price'] ?? null,
                 'hidden_from_clients' => $data['hidden_from_clients'],
                 'billable' => $data['billable'],
                 'completed_at' => null,
             ]);
-
-            $task->moveToStart();
 
             $task->subscribedUsers()->attach($data['subscribed_users'] ?? []);
 

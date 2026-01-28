@@ -17,17 +17,29 @@ import {
   Title,
 } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { usePage } from "@inertiajs/react";
+import { PricingType } from '@/utils/enums';
 
 const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
   const [currencySymbol, setCurrencySymbol] = useState();
 
+  let { auth: { user } } = usePage().props;
+
   const [form, submit, updateValue] = useForm('post', route('projects.store'), {
     name: '',
     description: '',
+    default_pricing_type: PricingType.HOURLY,
     rate: 0,
     client_company_id: '',
-    users: [],
+    users: [
+      user.id.toString(),
+    ],
   });
+
+  // const pricingTypes = [
+  //   { value: PricingType.HOURLY, label: 'Hourly' },
+  //   { value: PricingType.FIXED, label: 'Fixed' },
+  // ];
 
   useEffect(() => {
     let symbol = currencies.find(i =>
@@ -102,17 +114,28 @@ const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
           />
 
           <MultiSelect
-            label="Grant access to users"
-            placeholder="Select users"
+            label='Grant access to users'
+            placeholder='Select users'
             mt='md'
             searchable
             value={form.data.users}
-            onChange={(values) => updateValue("users", values)}
+            onChange={values => updateValue('users', values)}
             data={users}
             error={form.errors.users}
           />
 
-          <NumberInput
+          {/* <Select
+            label='Default pricing type'
+            placeholder='Select pricing type'
+            required
+            mt='md'
+            value={form.data.default_pricing_type}
+            onChange={value => updateValue('default_pricing_type', value)}
+            data={pricingTypes}
+            error={form.errors.default_pricing_type}
+          /> */}
+
+          {/* <NumberInput
             label='Hourly rate'
             mt='md'
             allowNegative={false}
@@ -123,7 +146,7 @@ const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
             value={form.data.rate}
             onChange={value => updateValue('rate', value)}
             error={form.errors.rate}
-          />
+          /> */}
 
           <Group
             justify='space-between'

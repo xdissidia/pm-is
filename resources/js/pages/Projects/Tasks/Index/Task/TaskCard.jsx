@@ -22,16 +22,26 @@ export default function TaskCard({ task, index }) {
             task.completed_at !== null && classes.completed
           }`}
         >
+          {task.priority && (
+            <Tooltip label={task.priority.label + " priority"} withArrow openDelay={300}>
+              <div
+                className={classes.priorityIndicator}
+                style={{ backgroundColor: task.priority.color }}
+              />
+            </Tooltip>
+          )}
           <div {...(can("reorder task") && provided.dragHandleProps)}>
-            <Text
-              className={classes.name}
-              size="xs"
-              fw={500}
-              c={isOverdue(task) && task.completed_at === null ? "red.7" : ""}
-              onClick={() => openEditTask(task)}
-            >
-              #{task.number + ": " + task.name}
-            </Text>
+            <Group wrap="nowrap" justify="start" align="start" gap="xs">
+              <Text
+                className={classes.name}
+                size="xs"
+                fw={500}
+                c={isOverdue(task) && task.completed_at === null ? "red.7" : ""}
+                onClick={() => openEditTask(task)}
+              >
+                #{task.number + ": " + task.name}
+              </Text>
+            </Group>
 
             <Group wrap="nowrap" justify="space-between">
               <Group wrap="wrap" style={{ rowGap: rem(3), columnGap: rem(12) }} mt={5}>

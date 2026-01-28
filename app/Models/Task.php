@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PricingType;
 use App\Models\Filters\IsNullFilter;
 use App\Models\Filters\TaskCompletedFilter;
 use App\Models\Filters\TaskOverdueFilter;
@@ -36,6 +37,9 @@ class Task extends Model implements AuditableContract, Sortable
         'description',
         'due_on',
         'estimation',
+        'priority_id',
+        'pricing_type',
+        'fixed_price',
         'hidden_from_clients',
         'billable',
         'order_column',
@@ -54,6 +58,13 @@ class Task extends Model implements AuditableContract, Sortable
         'hidden_from_clients' => 'boolean',
         'billable' => 'boolean',
         'estimation' => 'float',
+        'priority' => 'integer',
+        'fixed_price' => 'integer',
+        'pricing_type' => PricingType::class,
+    ];
+
+    protected $appends = [
+        'price',
     ];
 
     protected $observables = [
@@ -67,6 +78,7 @@ class Task extends Model implements AuditableContract, Sortable
         'assignedToUser:id,name,avatar',
         'subscribedUsers:id',
         'labels:id,name,color',
+        'priority:id,label,color,order',
         'attachments',
         'timeLogs.user:id,name',
         'assignees:id,name,avatar',
@@ -126,6 +138,11 @@ class Task extends Model implements AuditableContract, Sortable
         return $this->belongsTo(Invoice::class);
     }
 
+    public function priority(): BelongsTo
+    {
+        return $this->belongsTo(TaskPriority::class, 'priority_id');
+    }
+
     public function subscribedUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'subscribe_task');
@@ -159,5 +176,33 @@ class Task extends Model implements AuditableContract, Sortable
     public function assignees()
     {
         return $this->belongsToMany(User::class)->using(TaskUser::class)->withTimestamps();
+    }
+    public function isFixedPrice(): bool
+    {
+        return $this->pricing_type === PricingType::FIXED;
+    }
+
+    public function isHourly(): bool
+    {
+        return $this->pricing_type === PricingType::HOURLY;
+    }
+
+    public function getPriceAttribute(): ?int
+    {
+        if ($this->isFixedPrice()) {
+            return $this->fixed_price;
+        }
+
+        // For hourly pricing, calculate based on time logs if needed
+        if ($this->isHourly()) {
+            $this->loadMissing('timeLogs');
+
+            $totalMinutes = $this->timeLogs->sum('minutes');
+            $hourlyRate = $this->project->rate ?? 0;
+
+            return (int) ($totalMinutes / 60 * $hourlyRate);
+        }
+
+        return null;
     }
 }

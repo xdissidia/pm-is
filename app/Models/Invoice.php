@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Invoice as InvoiceEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -61,6 +62,11 @@ class Invoice extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function isFixedAmount(): bool
+    {
+        return $this->type === InvoiceEnum::TYPE_FIXED_AMOUNT->value;
     }
 
     public static function getNextNumber(): string

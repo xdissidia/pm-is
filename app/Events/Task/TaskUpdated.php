@@ -21,6 +21,8 @@ class TaskUpdated implements ShouldBroadcast
 
     public mixed $value;
 
+    public mixed $relatedData = null;
+
     /**
      * Create a new event instance.
      */
@@ -33,6 +35,10 @@ class TaskUpdated implements ShouldBroadcast
         $this->taskId = $task->id;
         $this->property = $updateField;
         $this->value = $this->task->toArray()[$updateField];
+
+        if ($updateField === 'priority_id') {
+            $this->relatedData = ['priority' => $this->task->toArray()['priority']];
+        }
 
         $this->dontBroadcastToCurrentUser();
     }

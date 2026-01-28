@@ -30,6 +30,11 @@ class UpdateTaskGroupRequest extends FormRequest
                     ->where('project_id', $this->route('project')->id)
                     ->ignore($this->route('taskGroup')->id),
             ],
+            'color' => [
+                'nullable',
+                'string',
+                'max:16',
+            ],
         ];
     }
 }

@@ -16,7 +16,7 @@ import {
   Group,
   MultiSelect,
   NumberInput,
-  Radio,
+  Checkbox,
   Select,
   Stack,
   Text,
@@ -30,6 +30,7 @@ import { IconSearch } from '@tabler/icons-react';
 import axios from 'axios';
 import { useState } from 'react';
 import Task from './Task';
+import { PricingType } from '@/utils/enums';
 
 const InvoiceCreate = () => {
   const { projects, clientCompanies, nextNumber } = usePage().props;
@@ -43,7 +44,7 @@ const InvoiceCreate = () => {
     client_company_id: '',
     projects: [],
     tasks: [],
-    type: 'hourly',
+    type: 'default',
     hourly_rate: 0,
     fixed_amount: 0,
     note: '',
@@ -71,7 +72,14 @@ const InvoiceCreate = () => {
           const taskIds = [];
 
           data.projectTasks.forEach(project => {
-            project.tasks.forEach(task => Number(task.total_minutes) > 0 && taskIds.push(task.id));
+            project.tasks.forEach(task => {
+              if (
+                (task.pricing_type === PricingType.HOURLY && Number(task.total_minutes) > 0) ||
+                (task.pricing_type === PricingType.FIXED && task.price >= 0)
+              ) {
+                taskIds.push(task.id);
+              }
+            });
           });
           const project = projects.find(i => form.data.projects[0] === i.id.toString());
 
@@ -88,11 +96,16 @@ const InvoiceCreate = () => {
   useDidUpdate(() => {
     let total = 0;
 
-    if (form.data.type === 'hourly') {
+    if (form.data.type === 'default') {
       projectTasks.forEach(project => {
         project.tasks.forEach(task => {
-          if (form.data.tasks.includes(task.id))
-            total += (Number(task.total_minutes) / 60) * form.data.hourly_rate;
+          if (form.data.tasks.includes(task.id)) {
+            if (task.pricing_type === PricingType.HOURLY) {
+              total += (Number(task.total_minutes) / 60) * form.data.hourly_rate;
+            } else {
+              total += task.price;
+            }
+          }
         });
       });
     } else {
@@ -180,26 +193,16 @@ const InvoiceCreate = () => {
               error={form.errors.projects}
             />
 
-            <Radio.Group
-              label='Payment type'
+            <Checkbox
+              label='Fixed amount for whole invoice'
               mt='md'
-              withAsterisk
-              value={form.data.type}
-              onChange={value => updateValue('type', value)}
-            >
-              <Group mt='xs'>
-                <Radio
-                  value='hourly'
-                  label='Hourly'
-                />
-                <Radio
-                  value='fixed_amount'
-                  label='Fixed amount'
-                />
-              </Group>
-            </Radio.Group>
+              checked={form.data.type === 'fixed_amount'}
+              onChange={event =>
+                updateValue('type', event.currentTarget.checked ? 'fixed_amount' : 'default')
+              }
+            />
 
-            {form.data.type === 'hourly' && (
+            {form.data.type === 'default' && (
               <NumberInput
                 label='Hourly rate'
                 mt='md'

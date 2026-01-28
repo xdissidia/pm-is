@@ -18,7 +18,23 @@
         .user {
             border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
         }
+
+        .priorityIndicator {
+            opacity: 1;
+        }
     }
+}
+
+.priorityIndicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: rem(5px);
+    border-radius: var(--mantine-radius-md) var(--mantine-radius-md) 0 0;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: 0.3s ease opacity;
 }
 
 .name {

@@ -3,12 +3,15 @@ import TaskGroupLabel from "@/components/TaskGroupLabel";
 import { diffForHumans } from "@/utils/datetime";
 import { redirectTo } from "@/utils/route";
 import { isOverdue } from "@/utils/task";
+import { getTaskPriorityConfig } from "@/utils/taskPriority";
 import { shortName } from "@/utils/user";
 import { Link } from "@inertiajs/react";
 import { Flex, Group, Pill, Text, Tooltip, rem } from "@mantine/core";
 import classes from "./css/Task.module.css";
 
 export default function Task({ task }) {
+  const priorityConfig = getTaskPriorityConfig(task.priority);
+
   return (
     <Flex
       className={`${classes.task} ${task.completed_at !== null && classes.completed}`}
@@ -51,6 +54,16 @@ export default function Task({ task }) {
             <Label key={label.id} name={label.name} color={label.color} />
           ))}
         </Group>
+
+        {priorityConfig && (
+          <Tooltip label={priorityConfig.label} withArrow openDelay={300}>
+            <div aria-label={priorityConfig.label}>
+              <span
+                className={`inline-block h-2 w-2 rounded-full bg-${priorityConfig.color}-5`}
+              />
+            </div>
+          </Tooltip>
+        )}
       </Group>
     </Flex>
   );

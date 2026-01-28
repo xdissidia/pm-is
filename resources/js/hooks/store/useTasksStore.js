@@ -54,7 +54,12 @@ const useTasksStore = create((set, get) => ({
 
           state.tasks[value][0][property] = value;
         } else {
-          state.tasks[task.group_id][index][property] = options || value;
+          state.tasks[task.group_id][index][property] = value;
+          // For properties with related objects (e.g., priority_id has priority object)
+          if (options) {
+            const relatedProperty = property.replace('_id', '');
+            state.tasks[task.group_id][index][relatedProperty] = options;
+          }
         }
       }));
     } catch (e) {
@@ -62,6 +67,7 @@ const useTasksStore = create((set, get) => ({
       alert("Failed to save task property change");
     }
   },
+
   complete: (task, checked) => {
     const newState = checked ? true : null;
     const index = get().tasks[task.group_id].findIndex((i) => i.id === task.id);

@@ -1,13 +1,16 @@
 import EmptyWithIcon from "@/components/EmptyWithIcon";
 import Layout from "@/layouts/MainLayout";
+import useTaskFiltersStore from "@/hooks/store/useTaskFiltersStore";
 import { usePage } from "@inertiajs/react";
-import { Accordion, Box, Breadcrumbs, Center, Stack, Text, Title, rem } from "@mantine/core";
+import { Accordion, Box, Breadcrumbs, Button, Center, Group, Stack, Text, Title, rem } from "@mantine/core";
 import { IconRocket, IconStar, IconStarFilled } from "@tabler/icons-react";
 import Task from "./Task";
 import classes from "./css/Index.module.css";
 
 const TasksIndex = () => {
   let { projects } = usePage().props;
+  const { prioritySort, sortHighToLow, sortLowToHigh, clearPrioritySort } =
+    useTaskFiltersStore();
 
   projects = projects.filter((i) => i.tasks.length);
 
@@ -27,6 +30,30 @@ const TasksIndex = () => {
       <Title order={1} mb={20}>
         Tasks assigned to you
       </Title>
+
+      <Group mb={16}>
+        <Group gap="xs">
+          <Button
+            size="xs"
+            variant={prioritySort === "asc" ? "filled" : "light"}
+            onClick={sortHighToLow}
+          >
+            Priority: High → Low
+          </Button>
+          <Button
+            size="xs"
+            variant={prioritySort === "desc" ? "filled" : "light"}
+            onClick={sortLowToHigh}
+          >
+            Priority: Low → High
+          </Button>
+          {prioritySort && (
+            <Button size="xs" variant="subtle" onClick={clearPrioritySort}>
+              Default order
+            </Button>
+          )}
+        </Group>
+      </Group>
 
       <Box maw={1000}>
         {projects.length ? (

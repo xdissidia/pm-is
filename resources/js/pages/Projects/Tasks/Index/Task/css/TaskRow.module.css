@@ -24,10 +24,23 @@
     }
 }
 
+.priorityIndicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: rem(6px);
+    border-radius: var(--mantine-radius-md) 0 0 var(--mantine-radius-md);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: 0.3s ease opacity;
+}
+
 .task {
     transition: 0.3s ease color, 0.3s ease background-color;
     padding: 5px 10px 5px 15px;
     border-radius: var(--mantine-radius-md);
+    position: relative;
 
     @mixin hover {
         color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-white));
@@ -43,6 +56,10 @@
 
         .user {
             border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+        }
+
+        .priorityIndicator {
+            opacity: 1;
         }
     }
 }

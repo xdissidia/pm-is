@@ -14,8 +14,8 @@ export default function TableRowActions({
   restore,
   children,
 }) {
-  const archiveForm = useForm("delete", route(archive.route, item.id));
-  const restoreForm = useForm("post", route(restore.route, item.id));
+  const archiveForm = archive ? useForm("delete", route(archive.route, item.id)) : null;
+  const restoreForm = restore ? useForm("post", route(restore.route, item.id)) : null;
 
   const openArchiveModal = () =>
     openConfirmModal({

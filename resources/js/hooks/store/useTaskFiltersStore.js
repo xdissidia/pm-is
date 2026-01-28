@@ -18,6 +18,7 @@ const useTaskFiltersStore = create((set, get) => ({
     status: params.status || 0,
     labels: params.labels || [],
   },
+  prioritySort: params.sort?.priority || null,
   hasUrlParams: (exclude = []) => {
     const params = omit(currentUrlParams(), exclude);
 
@@ -97,6 +98,48 @@ const useTaskFiltersStore = create((set, get) => ({
   },
   closeDrawer: () => {
     return set(produce(state => {state.openedDrawer = false}));
+  },
+  sortHighToLow: () => {
+    return set(
+      produce((state) => {
+        state.prioritySort = 'asc';
+        const params = currentUrlParams();
+        reloadWithQuery({
+          ...params,
+          sort: {
+            ...(params.sort || {}),
+            priority: 'asc',
+          },
+        });
+      })
+    );
+  },
+  sortLowToHigh: () => {
+    return set(
+      produce((state) => {
+        state.prioritySort = 'desc';
+        const params = currentUrlParams();
+        reloadWithQuery({
+          ...params,
+          sort: {
+            ...(params.sort || {}),
+            priority: 'desc',
+          },
+        });
+      })
+    );
+  },
+  clearPrioritySort: () => {
+    return set(
+      produce((state) => {
+        state.prioritySort = null;
+        const params = currentUrlParams();
+        const newParams = { ...params };
+        delete newParams['sort[priority]'];
+
+        reloadWithQuery(newParams);
+      })
+    );
   },
 }));
 

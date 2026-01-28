@@ -28,11 +28,11 @@ const TasksIndex = () => {
 
   const { groups, setGroups, reorderGroup } = useTaskGroupsStore();
   const { tasks, setTasks, addTask, reorderTask, moveTask } = useTasksStore();
-  const { hasUrlParams } = useTaskFiltersStore();
+  const { hasFilters } = useTaskFiltersStore();
   const { initProjectWebSocket } = useWebSockets();
   const { tasksView } = usePreferences();
 
-  const usingFilters = hasUrlParams();
+  const usingFilters = hasFilters();
 
   useEffect(() => {
     setGroups(taskGroups);

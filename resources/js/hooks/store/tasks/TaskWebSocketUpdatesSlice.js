@@ -7,7 +7,7 @@ const createTaskWebSocketUpdatesSlice = (set, get) => ({
       state.tasks[task.group_id] = [task, ...state.tasks[task.group_id]];
     }));
   },
-  updateTaskLocally: (taskId, property, value) => {
+  updateTaskLocally: (taskId, property, value, relatedData = null) => {
     return set(produce(state => {
       const task = get().findTask(taskId);
       const index = state.tasks[task.group_id].findIndex((i) => i.id === task.id);
@@ -21,6 +21,13 @@ const createTaskWebSocketUpdatesSlice = (set, get) => ({
         state.tasks[value][0][property] = value;
       } else {
         state.tasks[task.group_id][index][property] = value;
+
+        // If related data is provided, update those properties as well
+        if (relatedData) {
+          Object.keys(relatedData).forEach((key) => {
+            state.tasks[task.group_id][index][key] = relatedData[key];
+          });
+        }
       }
     }));
   },
