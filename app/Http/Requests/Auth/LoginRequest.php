@@ -84,6 +84,11 @@ class LoginRequest extends FormRequest
                             ]
                         );
                     } else {
+                        if ($response['data']['email'] == null) {
+                            throw ValidationException::withMessages([
+                                'email' => 'SSO authentication failed: Email not provided, please contact your administrator.',
+                            ]);
+                        }
                         $user = (new CreateUser())->create([
                             'active_directory_guid' => $response['data']['guid'],
                             'name' => $response['data']['name'],
