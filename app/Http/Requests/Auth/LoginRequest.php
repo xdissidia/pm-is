@@ -86,7 +86,7 @@ class LoginRequest extends FormRequest
                     } else {
                         if ($response['data']['email'] == null) {
                             throw ValidationException::withMessages([
-                                'email' => 'SSO authentication failed: Email not provided, please contact your administrator.',
+                                'email' => 'SSO authentication failed: Email not provided, please contact your VDI Administrator Local #1502.',
                             ]);
                         }
                         $user = (new CreateUser())->create([
