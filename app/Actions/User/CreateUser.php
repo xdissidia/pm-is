@@ -14,6 +14,7 @@ class CreateUser
     {
         return DB::transaction(function () use ($data) {
             $user = User::create([
+                'active_directory_guid' => $data['active_directory_guid'] ?? null,
                 'name' => $data['name'],
                 'job_title' => $data['job_title'],
                 'phone' => $data['phone'],
@@ -26,7 +27,7 @@ class CreateUser
 
             $user->assignRole($data['roles']);
 
-            UserCreated::dispatch($user, $data['password']);
+            // UserCreated::dispatch($user, $data['password']);
 
             return $user;
         });

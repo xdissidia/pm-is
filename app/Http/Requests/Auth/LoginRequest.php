@@ -2,9 +2,13 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Actions\User\CreateUser;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -27,7 +31,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -41,7 +45,11 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if ($this->ssoAuthenticate()) {
+            return;
+        }
+
+        if (!Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -51,6 +59,50 @@ class LoginRequest extends FormRequest
 
         RateLimiter::clear($this->throttleKey());
     }
+    /**
+     * Attempt to authenticate thru PAGASA SSO
+     * 
+     */
+    public function ssoAuthenticate()
+    {
+        $http = Http::withoutVerifying()->post('https://sso.pagasa.ict/api/v1/auth', [
+            'username' => $this->email,
+            'password' => $this->password,
+        ]);
+
+        if ($http->successful()) {
+            $response = $http->json();
+            if ($response['auth'] == true) {
+                $user = User::where('active_directory_guid', $response['data']['uid'])->first();
+                if (!$user) {
+                    $user = User::where('email', $response['data']['email'])->first();
+                    if ($user) {
+                        $user->update(
+                            [
+                                'active_directory_guid' => $response['data']['uid'],
+                                // 'password' => Hash::make($this->password),
+                            ]
+                        );
+                    } else {
+                        $user = (new CreateUser())->create([
+                            'active_directory_guid' => $response['data']['uid'],
+                            'name' => $response['data']['name'],
+                            'job_title' => $response['data']['position'],
+                            'phone' => null,
+                            'rate' => null,
+                            'email' => $response['data']['email'],
+                            'password' => $this->password,
+                            'avatar' => null,
+                            'roles' => ['Team Member'],
+                        ]);
+                    }
+                }
+                Auth::login($user);
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Ensure the login request is not rate limited.
@@ -59,7 +111,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -75,6 +127,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
     }
 }

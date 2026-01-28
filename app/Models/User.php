@@ -32,6 +32,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         'phone',
         'rate',
         'google_id',
+        'active_directory_guid',
     ];
 
     protected $searchable = [
