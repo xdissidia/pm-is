@@ -65,7 +65,7 @@ class LoginRequest extends FormRequest
      */
     public function ssoAuthenticate()
     {
-        $http = Http::withoutVerifying()->post('https://sso.pagasa.ict/api/v1/auth', [
+        $http = Http::withoutVerifying()->post('https://sso.pagasa.co/api/v1/auth', [
             'username' => $this->email,
             'password' => $this->password,
         ]);
