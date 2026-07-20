@@ -35,7 +35,7 @@ class ProjectTagSeeder extends Seeder
             ['name' => 'DEVELOPMENT', 'color' => '#6741D9'],
             ['name' => 'PROJECT', 'color' => '#2771C2'],
             ['name' => 'TOR', 'color' => '#9C36B5'],
-            ['name' => 'Completed', 'color' => '#309E44'],
+            ['name' => 'Completed', 'color' => '#309E44', 'hide_by_default' => true],
 
             // Suggested additional tags
             // ['name' => 'Infrastructure', 'color' => '#343A40'],
@@ -50,7 +50,11 @@ class ProjectTagSeeder extends Seeder
         foreach ($tags as $index => $tag) {
             ProjectTag::updateOrCreate(
                 ['name' => $tag['name']],
-                ['color' => $tag['color'], 'order' => $index + 1],
+                [
+                    'color' => $tag['color'],
+                    'order' => $index + 1,
+                    'hide_by_default' => $tag['hide_by_default'] ?? false,
+                ],
             );
         }
     }

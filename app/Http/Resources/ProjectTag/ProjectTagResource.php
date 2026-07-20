@@ -18,6 +18,7 @@ class ProjectTagResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'color' => $this->color,
+            'hide_by_default' => $this->hide_by_default,
         ];
     }
 }

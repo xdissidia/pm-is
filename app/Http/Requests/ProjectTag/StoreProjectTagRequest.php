@@ -24,6 +24,7 @@ class StoreProjectTagRequest extends FormRequest
         return [
             'name' => 'required|string',
             'color' => 'required|string|hex_color',
+            'hide_by_default' => 'boolean',
         ];
     }
 }

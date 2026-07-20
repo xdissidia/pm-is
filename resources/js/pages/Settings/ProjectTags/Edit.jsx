@@ -5,7 +5,16 @@ import ContainerBox from '@/layouts/ContainerBox';
 import Layout from '@/layouts/MainLayout';
 import { redirectTo } from '@/utils/route';
 import { usePage } from '@inertiajs/react';
-import { Anchor, Breadcrumbs, ColorInput, Grid, Group, TextInput, Title } from '@mantine/core';
+import {
+  Anchor,
+  Breadcrumbs,
+  Checkbox,
+  ColorInput,
+  Grid,
+  Group,
+  TextInput,
+  Title,
+} from '@mantine/core';
 
 const ProjectTagEdit = () => {
   const { item } = usePage().props;
@@ -17,6 +26,7 @@ const ProjectTagEdit = () => {
       _method: 'put',
       name: item.name,
       color: item.color || '',
+      hide_by_default: item.hide_by_default ?? false,
     }
   );
 
@@ -82,6 +92,14 @@ const ProjectTagEdit = () => {
             value={form.data.color}
             onChange={color => updateValue('color', color)}
             error={form.errors.color}
+          />
+          <Checkbox
+            label='Hide tagged projects by default'
+            description='Projects with this tag are hidden from the dashboard and project list unless the tag is selected in the filter.'
+            mt='md'
+            checked={form.data.hide_by_default}
+            onChange={e => updateValue('hide_by_default', e.currentTarget.checked)}
+            error={form.errors.hide_by_default}
           />
 
           <Group

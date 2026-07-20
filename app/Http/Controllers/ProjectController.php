@@ -23,6 +23,14 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
+        $selectedTags = (array) $request->input('tags', []);
+
+        // Tags flagged hide_by_default suppress their projects unless the tag
+        // is explicitly selected in the filter.
+        $hiddenTagIds = ProjectTag::where('hide_by_default', true)
+            ->whereNotIn('id', $selectedTags)
+            ->pluck('id');
+
         return Inertia::render('Projects/Index', [
             'tags' => ProjectTag::orderBy('order')->get(['id', 'name', 'color']),
             'items' => ProjectResource::collection(
@@ -34,7 +42,11 @@ class ProjectController extends Controller
                     ->when($request->has('archived'), fn ($query) => $query->onlyArchived())
                     ->when($request->filled('tags'), fn ($query) => $query->whereHas(
                         'tags',
-                        fn ($query) => $query->whereIn('project_tags.id', (array) $request->input('tags'))
+                        fn ($query) => $query->whereIn('project_tags.id', $selectedTags)
+                    ))
+                    ->when($hiddenTagIds->isNotEmpty(), fn ($query) => $query->whereDoesntHave(
+                        'tags',
+                        fn ($query) => $query->whereIn('project_tags.id', $hiddenTagIds)
                     ))
                     ->with([
                         'clientCompany:id,name',

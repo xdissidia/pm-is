@@ -1,5 +1,6 @@
 import TableRowActions from '@/components/TableRowActions';
-import { ColorSwatch, Table, Text } from '@mantine/core';
+import { ColorSwatch, Group, Table, Text, Tooltip } from '@mantine/core';
+import { IconEyeOff } from '@tabler/icons-react';
 
 export default function TableRow({ item }) {
   return (
@@ -8,7 +9,21 @@ export default function TableRow({ item }) {
         <ColorSwatch color={item.color} />
       </Table.Td>
       <Table.Td>
-        <Text fz='sm'>{item.name}</Text>
+        <Group gap={6}>
+          <Text fz='sm'>{item.name}</Text>
+          {item.hide_by_default && (
+            <Tooltip
+              label='Tagged projects are hidden unless this tag is selected in the filter'
+              withArrow
+            >
+              <IconEyeOff
+                size={15}
+                stroke={1.5}
+                color='var(--mantine-color-dimmed)'
+              />
+            </Tooltip>
+          )}
+        </Group>
       </Table.Td>
       {(can('edit project tag') || can('archive project tag') || can('restore project tag')) && (
         <Table.Td w={100}>

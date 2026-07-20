@@ -19,9 +19,22 @@ class DashboardController extends Controller
 
         $selectedTags = (array) $request->input('tags', []);
 
-        if (! empty($selectedTags)) {
+        // Tags flagged hide_by_default suppress their projects unless the tag
+        // is explicitly selected in the filter.
+        $hiddenTagIds = ProjectTag::where('hide_by_default', true)
+            ->whereNotIn('id', $selectedTags)
+            ->pluck('id');
+
+        if (! empty($selectedTags) || $hiddenTagIds->isNotEmpty()) {
             $projectIds = Project::whereIn('id', $projectIds)
-                ->whereHas('tags', fn ($query) => $query->whereIn('project_tags.id', $selectedTags))
+                ->when(! empty($selectedTags), fn ($query) => $query->whereHas(
+                    'tags',
+                    fn ($query) => $query->whereIn('project_tags.id', $selectedTags)
+                ))
+                ->when($hiddenTagIds->isNotEmpty(), fn ($query) => $query->whereDoesntHave(
+                    'tags',
+                    fn ($query) => $query->whereIn('project_tags.id', $hiddenTagIds)
+                ))
                 ->pluck('id');
         }
 
