@@ -26,7 +26,7 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('Dashboard/Index', [
-            'tags' => ProjectTag::orderBy('name')->get(['id', 'name', 'color']),
+            'tags' => ProjectTag::orderBy('order')->get(['id', 'name', 'color']),
             'projects' => Project::whereIn('id', $projectIds)
                 ->with([
                     'clientCompany:id,name',

@@ -24,7 +24,7 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Projects/Index', [
-            'tags' => ProjectTag::orderBy('name')->get(['id', 'name', 'color']),
+            'tags' => ProjectTag::orderBy('order')->get(['id', 'name', 'color']),
             'items' => ProjectResource::collection(
                 Project::searchByQueryString()
                     ->when($request->user()->isNotAdmin(), function ($query) {
@@ -62,7 +62,7 @@ class ProjectController extends Controller
                 'companies' => ClientCompany::dropdownValues(),
                 'users' => User::userDropdownValues(),
                 'currencies' => Currency::dropdownValues(['with' => ['clientCompanies:id,currency_id']]),
-                'tags' => ProjectTag::get(['id', 'name', 'color']),
+                'tags' => ProjectTag::orderBy('order')->get(['id', 'name', 'color']),
             ],
         ]);
     }
@@ -99,7 +99,7 @@ class ProjectController extends Controller
                 'companies' => ClientCompany::dropdownValues(),
                 'users' => User::userDropdownValues(),
                 'currencies' => Currency::dropdownValues(['with' => ['clientCompanies:id,currency_id']]),
-                'tags' => ProjectTag::get(['id', 'name', 'color']),
+                'tags' => ProjectTag::orderBy('order')->get(['id', 'name', 'color']),
             ],
         ]);
     }

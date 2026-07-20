@@ -12,7 +12,7 @@ class ProjectTag extends Model
 {
     use Archivable, IsSearchable, IsSortable;
 
-    protected $fillable = ['name', 'color'];
+    protected $fillable = ['name', 'color', 'order'];
 
     protected $searchable = [
         'name',

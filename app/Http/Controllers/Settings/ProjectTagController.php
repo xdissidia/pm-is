@@ -37,7 +37,10 @@ class ProjectTagController extends Controller
 
     public function store(StoreProjectTagRequest $request)
     {
-        ProjectTag::create($request->validated());
+        ProjectTag::create([
+            ...$request->validated(),
+            'order' => (ProjectTag::max('order') ?? 0) + 1,
+        ]);
 
         return redirect()->route('settings.project-tags.index')->success('Project tag created', 'A new project tag was successfully created.');
     }
