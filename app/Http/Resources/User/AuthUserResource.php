@@ -21,6 +21,7 @@ class AuthUserResource extends JsonResource
             'job_title' => $this->job_title,
             'avatar' => $this->avatar,
             'phone' => $this->phone,
+            'default_project_tag_ids' => $this->default_project_tag_ids ?? [],
         ];
     }
 }

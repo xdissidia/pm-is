@@ -14,6 +14,7 @@ class UpdateAuthUser
             'job_title' => $data['job_title'],
             'phone' => $data['phone'],
             'email' => $data['email'],
+            'default_project_tag_ids' => array_map('intval', $data['default_project_tag_ids'] ?? []),
         ];
 
         if ($user->avatar === null || $data['avatar']) {

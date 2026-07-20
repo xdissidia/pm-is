@@ -17,7 +17,13 @@ class DashboardController extends Controller
     {
         $projectIds = PermissionService::projectsThatUserCanAccess(auth()->user())->pluck('id');
 
-        $selectedTags = (array) $request->input('tags', []);
+        // An explicit tags param wins; the `all` sentinel means the filter was
+        // deliberately cleared; otherwise fall back to the user's saved defaults.
+        $selectedTags = match (true) {
+            $request->has('tags') => (array) $request->input('tags'),
+            $request->boolean('all') => [],
+            default => $request->user()->default_project_tag_ids ?? [],
+        };
 
         // Tags flagged hide_by_default suppress their projects unless the tag
         // is explicitly selected in the filter.

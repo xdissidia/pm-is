@@ -33,6 +33,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         'rate',
         'google_id',
         'active_directory_guid',
+        'default_project_tag_ids',
     ];
 
     protected $searchable = [
@@ -55,6 +56,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'default_project_tag_ids' => 'array',
     ];
 
     public function getFirstName(): string
@@ -69,7 +71,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
 
     public function isNotAdmin(): bool
     {
-        return !$this->isAdmin();
+        return ! $this->isAdmin();
     }
 
     public function clientCompanies(): BelongsToMany
@@ -102,7 +104,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         return self::orderBy('name')
             ->withoutRole($exclude)
             ->get(['id', 'name'])
-            ->map(fn($i) => ['value' => (string) $i->id, 'label' => $i->name])
+            ->map(fn ($i) => ['value' => (string) $i->id, 'label' => $i->name])
             ->toArray();
     }
 
@@ -111,7 +113,7 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
         return self::orderBy('name')
             ->role('client')
             ->get(['id', 'name'])
-            ->map(fn($i) => ['value' => (string) $i->id, 'label' => $i->name])
+            ->map(fn ($i) => ['value' => (string) $i->id, 'label' => $i->name])
             ->toArray();
     }
 

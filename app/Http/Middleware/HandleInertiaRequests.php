@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
                         'job_title' => $user->job_title,
                         'roles' => $user->getRoleNames(),
                         'permissions' => $user->getAllPermissions()->pluck('name'),
+                        'default_project_tag_ids' => $user->default_project_tag_ids ?? [],
                     ];
                 },
                 'notifications' => NotificationService::getLatest(6),

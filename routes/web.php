@@ -138,6 +138,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::group(['prefix' => 'account', 'as' => 'account.'], function () {
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('default-project-tags', [ProfileController::class, 'updateDefaultProjectTags'])->name('default-project-tags.update');
     });
 
     // Notifications

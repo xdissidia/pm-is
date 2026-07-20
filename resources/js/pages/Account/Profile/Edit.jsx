@@ -11,6 +11,7 @@ import {
   FileInput,
   Grid,
   Group,
+  MultiSelect,
   PasswordInput,
   Text,
   TextInput,
@@ -18,7 +19,7 @@ import {
 } from '@mantine/core';
 
 const ProfileIndex = () => {
-  const { user } = usePage().props;
+  const { user, projectTags } = usePage().props;
 
   const [form, submit, updateValue] = useForm('post', route('account.profile.update', user.id), {
     _method: 'put',
@@ -29,6 +30,7 @@ const ProfileIndex = () => {
     email: user.email,
     password: '',
     password_confirmation: '',
+    default_project_tag_ids: (user.default_project_tag_ids || []).map(String),
   });
 
   return (
@@ -117,6 +119,26 @@ const ProfileIndex = () => {
             value={form.data.phone}
             onChange={e => updateValue('phone', e.target.value)}
             error={form.errors.phone}
+          />
+
+          <Divider
+            mt='xl'
+            mb='md'
+            label='Preferences'
+            labelPosition='center'
+          />
+
+          <MultiSelect
+            label='Default project tag filter'
+            description='These tags are pre-selected in the tag filter on the Dashboard and Projects pages.'
+            placeholder={form.data.default_project_tag_ids.length ? undefined : 'Select tags'}
+            mt='md'
+            searchable
+            clearable
+            value={form.data.default_project_tag_ids}
+            onChange={values => updateValue('default_project_tag_ids', values)}
+            data={projectTags.map(tag => ({ value: tag.id.toString(), label: tag.name }))}
+            error={form.errors.default_project_tag_ids}
           />
 
           <Divider
