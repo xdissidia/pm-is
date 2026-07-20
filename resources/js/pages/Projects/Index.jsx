@@ -6,7 +6,7 @@ import useAuthorization from '@/hooks/useAuthorization';
 import Layout from '@/layouts/MainLayout';
 import { redirectTo, reloadWithQuery } from '@/utils/route';
 import { usePage } from '@inertiajs/react';
-import { Button, Center, Flex, Grid, Group } from '@mantine/core';
+import { Box, Button, Center, Flex, Grid, Group } from '@mantine/core';
 import { IconPlus, IconSearch } from '@tabler/icons-react';
 import ProjectCard from './Index/ProjectCard';
 
@@ -44,7 +44,11 @@ const ProjectsIndex = () => {
         </Grid.Col>
       </Grid>
 
-      <ProjectTagFilter tags={tags} />
+      {tags?.length > 0 && (
+        <Box mt='lg'>
+          <ProjectTagFilter tags={tags} />
+        </Box>
+      )}
 
       {items.length ? (
         <Flex
