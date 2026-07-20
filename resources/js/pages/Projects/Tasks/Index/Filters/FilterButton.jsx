@@ -1,21 +1,21 @@
-import { Button, rem } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
-import classes from "./css/FilterButton.module.css";
+import { Button, rem } from '@mantine/core';
+import { IconCheck } from '@tabler/icons-react';
+import classes from './css/FilterButton.module.css';
 
 export default function FilterButton({ selected, children, ...props }) {
   return (
     <Button
       className={classes.button}
-      variant={selected ? "filled" : "default"}
-      radius="md"
-      justify="flex-start"
-      size="xs"
+      variant={selected ? 'filled' : 'default'}
+      radius='md'
+      justify='flex-start'
+      size='xs'
       fullWidth
       leftSection={
         <IconCheck
           stroke={2}
           opacity={selected ? 1 : 0.2}
-          radius="xl"
+          radius='xl'
           style={{
             width: rem(13),
             height: rem(13),

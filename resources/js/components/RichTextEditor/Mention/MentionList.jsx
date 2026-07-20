@@ -1,11 +1,11 @@
-import "./css/MentionList.css";
+import './css/MentionList.css';
 
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 export default forwardRef(function MentionList(props, ref) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectItem = (index) => {
+  const selectItem = index => {
     const item = props.items[index];
 
     if (item) {
@@ -29,17 +29,17 @@ export default forwardRef(function MentionList(props, ref) {
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
-      if (event.key === "ArrowUp") {
+      if (event.key === 'ArrowUp') {
         upHandler();
         return true;
       }
 
-      if (event.key === "ArrowDown") {
+      if (event.key === 'ArrowDown') {
         downHandler();
         return true;
       }
 
-      if (event.key === "Enter") {
+      if (event.key === 'Enter') {
         enterHandler();
         return true;
       }
@@ -49,11 +49,11 @@ export default forwardRef(function MentionList(props, ref) {
   }));
 
   return (
-    <div className="items">
+    <div className='items'>
       {props.items.length ? (
         props.items.map((item, index) => (
           <button
-            className={`item ${index === selectedIndex ? "is-selected" : ""}`}
+            className={`item ${index === selectedIndex ? 'is-selected' : ''}`}
             key={index}
             onClick={() => selectItem(index)}
           >
@@ -61,7 +61,7 @@ export default forwardRef(function MentionList(props, ref) {
           </button>
         ))
       ) : (
-        <div className="item">No result</div>
+        <div className='item'>No result</div>
       )}
     </div>
   );

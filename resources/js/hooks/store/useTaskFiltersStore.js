@@ -1,5 +1,5 @@
 import { currentUrlParams, reloadWithQuery, reloadWithoutQueryParams } from '@/utils/route';
-import { produce } from "immer";
+import { produce } from 'immer';
 import isArray from 'lodash/isArray';
 import omit from 'lodash/omit';
 import { create } from 'zustand';
@@ -28,17 +28,17 @@ const useTaskFiltersStore = create((set, get) => ({
     const filters = get().filters;
     const keys = Object.keys(filters);
 
-    return keys.some((key) => {
+    return keys.some(key => {
       if (isArray(filters[key])) {
         return filters[key].length > 0;
       } else {
         const keys = Object.keys(filters[key]);
-        return keys.some((k) => !!filters[key][k]);
+        return keys.some(k => !!filters[key][k]);
       }
     });
   },
   clearFilters: () => {
-    reloadWithoutQueryParams({keep: ['archive']});
+    reloadWithoutQueryParams({ keep: ['archive'] });
 
     return set(() => ({
       filters: {
@@ -50,13 +50,13 @@ const useTaskFiltersStore = create((set, get) => ({
         },
         status: 0,
         labels: [],
-      }
+      },
     }));
   },
   toggleArrayFilter: (field, id) => {
     return set(
-      produce((state) => {
-        const index = state.filters[field].findIndex((i) => i === id);
+      produce(state => {
+        const index = state.filters[field].findIndex(i => i === id);
 
         if (index !== -1) {
           state.filters[field].splice(index, 1);
@@ -64,44 +64,52 @@ const useTaskFiltersStore = create((set, get) => ({
           state.filters[field].push(id);
         }
         reloadWithQuery({ [field]: state.filters[field] }, true);
-      }),
+      })
     );
   },
   toggleObjectFilter: (field, property) => {
     return set(
-      produce((state) => {
+      produce(state => {
         if (state.filters[field][property] === 0) {
           state.filters[field][property] = 1;
           reloadWithQuery({ [property]: 1 }, true);
         } else {
           state.filters[field][property] = 0;
-          reloadWithoutQueryParams({exclude: [property]});
+          reloadWithoutQueryParams({ exclude: [property] });
         }
-      }),
+      })
     );
   },
   toggleValueFilter: (field, value) => {
     return set(
-      produce((state) => {
+      produce(state => {
         if (!state.filters[field]) {
           state.filters[field] = value;
           reloadWithQuery({ [field]: value }, true);
         } else {
           state.filters[field] = 0;
-          reloadWithoutQueryParams({exclude: [field]});
+          reloadWithoutQueryParams({ exclude: [field] });
         }
-      }),
+      })
     );
   },
   openDrawer: () => {
-    return set(produce(state => {state.openedDrawer = true}));
+    return set(
+      produce(state => {
+        state.openedDrawer = true;
+      })
+    );
   },
   closeDrawer: () => {
-    return set(produce(state => {state.openedDrawer = false}));
+    return set(
+      produce(state => {
+        state.openedDrawer = false;
+      })
+    );
   },
   sortHighToLow: () => {
     return set(
-      produce((state) => {
+      produce(state => {
         state.prioritySort = 'asc';
         const params = currentUrlParams();
         reloadWithQuery({
@@ -116,7 +124,7 @@ const useTaskFiltersStore = create((set, get) => ({
   },
   sortLowToHigh: () => {
     return set(
-      produce((state) => {
+      produce(state => {
         state.prioritySort = 'desc';
         const params = currentUrlParams();
         reloadWithQuery({
@@ -131,7 +139,7 @@ const useTaskFiltersStore = create((set, get) => ({
   },
   clearPrioritySort: () => {
     return set(
-      produce((state) => {
+      produce(state => {
         state.prioritySort = null;
         const params = currentUrlParams();
         const newParams = { ...params };

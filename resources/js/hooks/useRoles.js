@@ -5,29 +5,19 @@ export default function useRoles() {
   const roles = usePage().props.shared.roles;
   const roleColors = {};
 
-  const colors = [
-    'grape',
-    'yellow',
-    'indigo',
-    'lime',
-    'cyan',
-    'violet',
-    'orange',
-    'pink',
-  ];
+  const colors = ['grape', 'yellow', 'indigo', 'lime', 'cyan', 'violet', 'orange', 'pink'];
 
-  roles.forEach((role, index) => roleColors[role.name] = colors[index % colors.length]);
+  roles.forEach((role, index) => (roleColors[role.name] = colors[index % colors.length]));
 
-
-  const getColor = (role) => {
+  const getColor = role => {
     return roleColors[role];
   };
 
-  const getDropdownValues = ({except = []}) => {
+  const getDropdownValues = ({ except = [] }) => {
     return roles
       .filter(i => !except.includes(i.name))
-      .map(role => ({value: role.name, label: upperFirst(role.name)}));
-  }
+      .map(role => ({ value: role.name, label: upperFirst(role.name) }));
+  };
 
-  return {getColor, getDropdownValues};
+  return { getColor, getDropdownValues };
 }

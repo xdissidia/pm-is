@@ -1,32 +1,25 @@
-import useForm from "@/hooks/useForm";
-import { hasRoles } from "@/utils/user";
-import { Button, Flex, MultiSelect, Skeleton, Text } from "@mantine/core";
-import { modals } from "@mantine/modals";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import useForm from '@/hooks/useForm';
+import { hasRoles } from '@/utils/user';
+import { Button, Flex, MultiSelect, Skeleton, Text } from '@mantine/core';
+import { modals } from '@mantine/modals';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 
 function ModalForm({ item }) {
   const [requestPending, setRequestPending] = useState(true);
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
 
-  const [form, submit, updateValue] = useForm(
-    "post",
-    route("projects.user_access", item.id),
-    {
-      users: item.users_with_access
-        .filter((user) => !hasRoles(user, ["admin", "client"]))
-        .map((i) => i.id.toString()),
-      clients: item.users_with_access
-        .filter(
-          (user) =>
-            hasRoles(user, ["client"]) && user.reason !== "company owner",
-        )
-        .map((i) => i.id.toString()),
-    },
-  );
+  const [form, submit, updateValue] = useForm('post', route('projects.user_access', item.id), {
+    users: item.users_with_access
+      .filter(user => !hasRoles(user, ['admin', 'client']))
+      .map(i => i.id.toString()),
+    clients: item.users_with_access
+      .filter(user => hasRoles(user, ['client']) && user.reason !== 'company owner')
+      .map(i => i.id.toString()),
+  });
 
-  const submitModal = (event) => {
+  const submitModal = event => {
     submit(event, {
       onSuccess: () => modals.closeAll(),
       preserveScroll: true,
@@ -35,14 +28,12 @@ function ModalForm({ item }) {
 
   useEffect(() => {
     axios
-      .get(route("dropdown.values", ["users", "clients"]))
+      .get(route('dropdown.values', ['users', 'clients']))
       .then(({ data }) => {
         setUsers([...data.users]);
         setClients([...data.clients]);
       })
-      .catch(() =>
-        alert("Something went wrong, failed to load dropdown values"),
-      )
+      .catch(() => alert('Something went wrong, failed to load dropdown values'))
       .finally(() => setRequestPending(false));
   }, [form.data]);
 
@@ -50,40 +41,61 @@ function ModalForm({ item }) {
     <form onSubmit={submitModal}>
       {requestPending ? (
         <>
-          <Skeleton height={10} width={50} mt={8} radius="xl" />
-          <Skeleton height={25} mt={10} radius="xl" />
+          <Skeleton
+            height={10}
+            width={50}
+            mt={8}
+            radius='xl'
+          />
+          <Skeleton
+            height={25}
+            mt={10}
+            radius='xl'
+          />
 
-          <Skeleton height={10} width={50} mt={25} radius="xl" />
-          <Skeleton height={25} mt={10} radius="xl" />
+          <Skeleton
+            height={10}
+            width={50}
+            mt={25}
+            radius='xl'
+          />
+          <Skeleton
+            height={25}
+            mt={10}
+            radius='xl'
+          />
         </>
       ) : (
         <>
           <MultiSelect
-            label="Users"
-            placeholder="Select users"
+            label='Users'
+            placeholder='Select users'
             searchable
             value={requestPending ? [] : form.data.users}
-            onChange={(values) => updateValue("users", values)}
+            onChange={values => updateValue('users', values)}
             data={users}
             error={form.errors.users}
           />
 
           <MultiSelect
-            label="Clients"
-            placeholder="Select clients"
+            label='Clients'
+            placeholder='Select clients'
             searchable
-            mt="md"
+            mt='md'
             value={requestPending ? [] : form.data.clients}
-            onChange={(values) => updateValue("clients", values)}
+            onChange={values => updateValue('clients', values)}
             data={clients}
             error={form.errors.clients}
           />
         </>
       )}
 
-      <Flex justify="flex-end" mt="xl">
+      <Flex
+        justify='flex-end'
+        mt='xl'
+      >
         <Button
-          type="submit"
+          type='submit'
           w={100}
           disabled={requestPending}
           loading={form.processing}
@@ -95,15 +107,19 @@ function ModalForm({ item }) {
   );
 }
 
-const UserAccessModal = (item) => {
+const UserAccessModal = item => {
   modals.open({
     title: (
-      <Text size="xl" fw={700} mb={-10}>
+      <Text
+        size='xl'
+        fw={700}
+        mb={-10}
+      >
         User access
       </Text>
     ),
     centered: true,
-    padding: "xl",
+    padding: 'xl',
     overlayProps: { backgroundOpacity: 0.55, blur: 3 },
     children: <ModalForm item={item} />,
   });

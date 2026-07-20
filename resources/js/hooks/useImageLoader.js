@@ -7,7 +7,7 @@ export default function useImageLoader() {
     image: null,
   });
 
-  const loadImage = (url) => {
+  const loadImage = url => {
     const image = new Image();
 
     image.onload = () => {

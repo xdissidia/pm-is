@@ -51,9 +51,9 @@ export function EditTaskDrawer() {
   const task = findTask(edit.task.id);
 
   const [data, setData] = useState({
-    group_id: "",
-    name: "",
-    description: "",
+    group_id: '',
+    name: '',
+    description: '',
     estimation: 0,
     priority_id: '',
     fixed_price: 0,
@@ -74,9 +74,9 @@ export function EditTaskDrawer() {
   useEffect(() => {
     if (edit.opened) {
       setData({
-        group_id: task?.group_id || "",
-        name: task?.name || "",
-        description: task?.description || "",
+        group_id: task?.group_id || '',
+        name: task?.name || '',
+        description: task?.description || '',
         estimation: task?.estimation || 0,
         priority_id: task?.priority_id || '',
         fixed_price: task?.fixed_price ? task.fixed_price / 100 : 0,
@@ -84,9 +84,9 @@ export function EditTaskDrawer() {
         hidden_from_clients:
           task?.hidden_from_clients !== undefined ? task.hidden_from_clients : false,
         billable: task?.billable !== undefined ? task.billable : true,
-        subscribed_users: (task?.subscribed_users || []).map((i) => i.id.toString()),
-        assignees: (task?.assignees || []).map((i) => i.id.toString()),
-        labels: (task?.labels || []).map((i) => i.id),
+        subscribed_users: (task?.subscribed_users || []).map(i => i.id.toString()),
+        assignees: (task?.assignees || []).map(i => i.id.toString()),
+        labels: (task?.labels || []).map(i => i.id),
       });
       setTimeout(() => {
         editorRef.current?.setContent(task?.description || '');
@@ -97,8 +97,8 @@ export function EditTaskDrawer() {
   const updateValue = (field, value) => {
     setData({ ...data, [field]: value });
 
-    const dropdowns = ["labels", "subscribed_users", 'assignees'];
-    const onBlurInputs = ["name", "description"];
+    const dropdowns = ['labels', 'subscribed_users', 'assignees'];
+    const onBlurInputs = ['name', 'description'];
 
     if (dropdowns.includes(field)) {
       const options = {
@@ -106,9 +106,7 @@ export function EditTaskDrawer() {
         subscribed_users: value.map(id =>
           usersWithAccessToProject.find(i => i.id.toString() === id)
         ),
-        assignees: value.map((id) =>
-          usersWithAccessToProject.find((i) => i.id.toString() === id),
-        ),
+        assignees: value.map(id => usersWithAccessToProject.find(i => i.id.toString() === id)),
       };
       updateTaskProperty(task, field, value, options[field]);
     } else if (field === 'priority_id') {
@@ -239,12 +237,12 @@ export function EditTaskDrawer() {
               />
 
               <MultiSelect
-                label="Assignees"
-                placeholder={!data.assignees.length ? "Select assignees" : null}
-                mt="lg"
+                label='Assignees'
+                placeholder={!data.assignees.length ? 'Select assignees' : null}
+                mt='lg'
                 value={data.assignees}
-                onChange={(values) => updateValue("assignees", values)}
-                data={usersWithAccessToProject.map((i) => ({
+                onChange={values => updateValue('assignees', values)}
+                data={usersWithAccessToProject.map(i => ({
                   value: i.id.toString(),
                   label: i.name,
                 }))}

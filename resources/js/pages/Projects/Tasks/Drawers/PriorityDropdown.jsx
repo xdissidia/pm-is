@@ -17,14 +17,14 @@ export default function PriorityDropdown({ value, onChange, ...props }) {
   });
 
   const { priorities } = usePage().props;
-  const selectedPriority = priorities?.find((p) => p.id === value);
+  const selectedPriority = priorities?.find(p => p.id === value);
 
-  const handleSelect = (val) => {
+  const handleSelect = val => {
     onChange(val ? Number(val) : null);
     combobox.closeDropdown();
   };
 
-  const handleClear = (e) => {
+  const handleClear = e => {
     e.stopPropagation();
     onChange(null);
   };
@@ -73,7 +73,7 @@ export default function PriorityDropdown({ value, onChange, ...props }) {
 
         <Combobox.Dropdown>
           <Combobox.Options>
-            {priorities?.map((priority) => (
+            {priorities?.map(priority => (
               <Combobox.Option
                 value={priority.id.toString()}
                 key={priority.id}

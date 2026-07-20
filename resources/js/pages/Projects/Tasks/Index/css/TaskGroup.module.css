@@ -1,61 +1,64 @@
 .row {
-    margin-bottom: var(--mantine-spacing-sm);
+  margin-bottom: var(--mantine-spacing-sm);
 }
 
 .group {
-    align-items: center;
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-    border-radius: var(--mantine-radius-md);
-    border: rem(1px) solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: var(--mantine-spacing-sm);
-    padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
-    transition: 0.3s ease border, 0.3s ease color;
+  align-items: center;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-md);
+  border: rem(1px) solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  transition:
+    0.3s ease border,
+    0.3s ease color;
 
-    @mixin hover {
-        color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
-        border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+    border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 
-        .actions {
-            opacity: 0.5;
-        }
-
-        .dragHandle {
-            opacity: 0.6;
-        }
+    .actions {
+      opacity: 0.5;
     }
+
+    .dragHandle {
+      opacity: 0.6;
+    }
+  }
 }
 
 .actions {
-    opacity: 0;
-    transition: 0.3s ease opacity;
+  opacity: 0;
+  transition: 0.3s ease opacity;
 }
 
-.itemDragging {}
+.itemDragging {
+}
 
 .dragHandle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
-    opacity: 0.2;
-    transition: 0.3s ease opacity;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+  opacity: 0.2;
+  transition: 0.3s ease opacity;
 }
 
 :global(.kanban-view) {
-    .row {
-        max-width: rem(260px);
-        min-width: rem(260px);
-    }
+  .row {
+    max-width: rem(260px);
+    min-width: rem(260px);
+  }
 
-    .group {
-        margin-bottom: var(--mantine-spacing-xs);
-        padding: var(--mantine-spacing-sm) var(--mantine-spacing-xs);
-    }
+  .group {
+    margin-bottom: var(--mantine-spacing-xs);
+    padding: var(--mantine-spacing-sm) var(--mantine-spacing-xs);
+  }
 
-    .placeholder {
-        min-height: 10px;
-    }
+  .placeholder {
+    min-height: 10px;
+  }
 }

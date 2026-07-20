@@ -1,4 +1,4 @@
-import cloneDeep from "lodash/cloneDeep";
+import cloneDeep from 'lodash/cloneDeep';
 
 export const reorder = (list, startIndex, endIndex) => {
   const result = Array.from(list);

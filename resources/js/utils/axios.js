@@ -1,6 +1,6 @@
-import nProgress from "nprogress";
+import nProgress from 'nprogress';
 
-export const onUploadProgress = (progressEvent) => {
+export const onUploadProgress = progressEvent => {
   nProgress.set(progressEvent.progress);
 
   if (progressEvent.progress === 1) {

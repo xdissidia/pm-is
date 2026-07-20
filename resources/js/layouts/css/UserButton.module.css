@@ -1,11 +1,14 @@
 .user {
-    display: block;
-    width: 100%;
-    padding: var(--mantine-spacing-md);
-    color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-0));
-    transition: 0.3s ease background-color;
+  display: block;
+  width: 100%;
+  padding: var(--mantine-spacing-md);
+  color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-0));
+  transition: 0.3s ease background-color;
 
-    @mixin hover {
-        background-color: light-dark(var(--mantine-color-blue-9), var(--mantine-color-dark-8)) !important;
-    }
+  @mixin hover {
+    background-color: light-dark(
+      var(--mantine-color-blue-9),
+      var(--mantine-color-dark-8)
+    ) !important;
+  }
 }

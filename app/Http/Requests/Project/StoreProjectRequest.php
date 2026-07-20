@@ -30,6 +30,8 @@ class StoreProjectRequest extends FormRequest
             'client_company_id' => 'required|integer|exists:client_companies,id',
             'rate' => 'numeric|min:0|nullable',
             'users' => 'array',
+            'tags' => 'array',
+            'tags.*' => 'integer|exists:project_tags,id',
         ];
     }
 }

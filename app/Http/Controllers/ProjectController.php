@@ -8,6 +8,7 @@ use App\Http\Resources\Project\ProjectResource;
 use App\Models\ClientCompany;
 use App\Models\Currency;
 use App\Models\Project;
+use App\Models\ProjectTag;
 use App\Models\User;
 use App\Services\ProjectService;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class ProjectController extends Controller
                         'clientCompany:id,name',
                         'clientCompany.clients:id,name,avatar',
                         'users:id,name,avatar',
+                        'tags:id,name,color',
                     ])
                     ->withCount([
                         'tasks AS all_tasks_count',
@@ -55,6 +57,7 @@ class ProjectController extends Controller
                 'companies' => ClientCompany::dropdownValues(),
                 'users' => User::userDropdownValues(),
                 'currencies' => Currency::dropdownValues(['with' => ['clientCompanies:id,currency_id']]),
+                'tags' => ProjectTag::get(['id', 'name', 'color']),
             ],
         ]);
     }
@@ -68,6 +71,8 @@ class ProjectController extends Controller
         $project = Project::create($data);
 
         $project->users()->attach($data['users']);
+
+        $project->tags()->attach($data['tags'] ?? []);
 
         $project->taskGroups()->createMany([
             ['name' => 'Backlog'],
@@ -84,11 +89,12 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         return Inertia::render('Projects/Edit', [
-            'item' => $project,
+            'item' => $project->load('tags:id,name,color'),
             'dropdowns' => [
                 'companies' => ClientCompany::dropdownValues(),
                 'users' => User::userDropdownValues(),
                 'currencies' => Currency::dropdownValues(['with' => ['clientCompanies:id,currency_id']]),
+                'tags' => ProjectTag::get(['id', 'name', 'color']),
             ],
         ]);
     }
@@ -102,6 +108,8 @@ class ProjectController extends Controller
         $project->update($data);
 
         $project->users()->sync($data['users']);
+
+        $project->tags()->sync($data['tags'] ?? []);
 
         return redirect()->route('projects.index')->success('Project updated', 'The project was successfully updated.');
     }

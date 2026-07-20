@@ -50,6 +50,11 @@ class Project extends Model implements AuditableContract
         return $this->belongsToMany(User::class, 'project_user_access');
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ProjectTag::class);
+    }
+
     public function taskGroups(): HasMany
     {
         return $this->hasMany(TaskGroup::class);

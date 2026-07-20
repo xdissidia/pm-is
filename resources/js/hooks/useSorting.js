@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export default function useSorting(sort) {
   const [sortBy, setSortBy] = useState(null);
   const [reverseSortDirection, setReverseSortDirection] = useState(false);
 
-  const setSorting = (field) => {
+  const setSorting = field => {
     const reversed = field === sortBy ? !reverseSortDirection : false;
     setReverseSortDirection(reversed);
     setSortBy(field);
 
-    sort({sort: {[field]: reversed ? 'desc' : 'asc'}});
+    sort({ sort: { [field]: reversed ? 'desc' : 'asc' } });
   };
 
   useEffect(() => {

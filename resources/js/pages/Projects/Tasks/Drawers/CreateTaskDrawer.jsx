@@ -36,12 +36,12 @@ export function CreateTaskDrawer() {
   } = usePage().props;
 
   const initial = {
-    group_id: create.group_id ? create.group_id.toString() : "",
-    name: "",
-    description: "",
-    estimation: "",
+    group_id: create.group_id ? create.group_id.toString() : '',
+    name: '',
+    description: '',
+    estimation: '',
     priority_id: null,
-    due_on: "",
+    due_on: '',
     hidden_from_clients: false,
     billable: true,
     subscribed_users: [user.id.toString()],
@@ -198,13 +198,13 @@ export function CreateTaskDrawer() {
           />
 
           <MultiSelect
-            label="Assignees"
-            placeholder="Select assignees"
+            label='Assignees'
+            placeholder='Select assignees'
             searchable
-            mt="md"
+            mt='md'
             value={form.data.assigned_users}
-            onChange={(values) => updateValue("assigned_users", values)}
-            data={usersWithAccessToProject.map((i) => ({
+            onChange={values => updateValue('assigned_users', values)}
+            data={usersWithAccessToProject.map(i => ({
               value: i.id.toString(),
               label: i.name,
             }))}
@@ -247,7 +247,6 @@ export function CreateTaskDrawer() {
             onChange={value => updateValue('priority_id', value || null)}
             mt='md'
           />
-
 
           {/* <Select
             label='Pricing type'

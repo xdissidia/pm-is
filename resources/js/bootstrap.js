@@ -12,13 +12,13 @@ router.on('start', () => {
   timeout = setTimeout(() => NProgress.start(), 250);
 });
 
-router.on('progress', (event) => {
+router.on('progress', event => {
   if (NProgress.isStarted() && event.detail.progress.percentage) {
     NProgress.set((event.detail.progress.percentage / 100) * 0.9);
   }
 });
 
-router.on('finish', (event) => {
+router.on('finish', event => {
   clearTimeout(timeout);
   if (!NProgress.isStarted()) {
     return;
@@ -38,39 +38,46 @@ router.on('finish', (event) => {
  * CSRF token as a header based on the value of the "XSRF" token cookie.
  */
 
-import axios from "axios";
+import axios from 'axios';
 window.axios = axios;
 
-window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 window.axios.pendingRequests = 0;
 
-window.axios.interceptors.request.use(function (config) {
-  config.progress === true && NProgress.start();
-  window.axios.pendingRequests++;
-  return config;
-}, function (error) {
-  NProgress.done();
-  window.axios.pendingRequests--;
-  console.error(error)
-  return Promise.reject(error);
-});
+window.axios.interceptors.request.use(
+  function (config) {
+    config.progress === true && NProgress.start();
+    window.axios.pendingRequests++;
+    return config;
+  },
+  function (error) {
+    NProgress.done();
+    window.axios.pendingRequests--;
+    console.error(error);
+    return Promise.reject(error);
+  }
+);
 
-window.axios.interceptors.response.use(function (response) {
-  NProgress.done();
-  window.axios.pendingRequests--;
-  return response;
-}, function (error) {
-  NProgress.done();
-  window.axios.pendingRequests--;
-  console.error(error)
-  return Promise.reject(error);
-});
+window.axios.interceptors.response.use(
+  function (response) {
+    NProgress.done();
+    window.axios.pendingRequests--;
+    return response;
+  },
+  function (error) {
+    NProgress.done();
+    window.axios.pendingRequests--;
+    console.error(error);
+    return Promise.reject(error);
+  }
+);
 
-window.addEventListener("beforeunload", (event) => {
+window.addEventListener('beforeunload', event => {
   if (window.axios.pendingRequests > 0) {
     event.preventDefault();
-    return (event.returnValue = 'There are pending requests, press "Cancel" to prevent any loss of changes.');
+    return (event.returnValue =
+      'There are pending requests, press "Cancel" to prevent any loss of changes.');
   }
 });
 
@@ -90,7 +97,9 @@ window.Echo = new Echo({
   broadcaster: 'pusher',
   key: import.meta.env.VITE_PUSHER_APP_KEY,
   cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-  wsHost: import.meta.env.VITE_PUSHER_HOST ? import.meta.env.VITE_PUSHER_HOST : `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
+  wsHost: import.meta.env.VITE_PUSHER_HOST
+    ? import.meta.env.VITE_PUSHER_HOST
+    : `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
   wsPort: import.meta.env.VITE_PUSHER_PORT ?? 80,
   wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
   forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',

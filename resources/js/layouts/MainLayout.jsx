@@ -1,12 +1,12 @@
-import FlashNotification from "@/components/FlashNotification";
-import useNotificationsStore from "@/hooks/store/useNotificationsStore";
-import useAuthorization from "@/hooks/useAuthorization";
-import useWebSockets from "@/hooks/useWebSockets";
-import NavBarNested from "@/layouts/NavBarNested";
-import Notifications from "@/layouts/Notifications";
-import { Head, usePage } from "@inertiajs/react";
-import { AppShell } from "@mantine/core";
-import { useEffect } from "react";
+import FlashNotification from '@/components/FlashNotification';
+import useNotificationsStore from '@/hooks/store/useNotificationsStore';
+import useAuthorization from '@/hooks/useAuthorization';
+import useWebSockets from '@/hooks/useWebSockets';
+import NavBarNested from '@/layouts/NavBarNested';
+import Notifications from '@/layouts/Notifications';
+import { Head, usePage } from '@inertiajs/react';
+import { AppShell } from '@mantine/core';
+import { useEffect } from 'react';
 
 export default function MainLayout({ children, title }) {
   window.can = useAuthorization().can;
@@ -22,8 +22,8 @@ export default function MainLayout({ children, title }) {
 
   return (
     <AppShell
-      navbar={{ width: 300, breakpoint: "sm", collapsed: { mobile: false } }}
-      padding="4rem"
+      navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: false } }}
+      padding='4rem'
     >
       <Head title={title} />
 

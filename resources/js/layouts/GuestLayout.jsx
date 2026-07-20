@@ -1,6 +1,6 @@
-import FlashNotification from "@/components/FlashNotification";
-import { Head } from "@inertiajs/react";
-import { Container } from "@mantine/core";
+import FlashNotification from '@/components/FlashNotification';
+import { Head } from '@inertiajs/react';
+import { Container } from '@mantine/core';
 
 export default function GuestLayout({ title, children }) {
   return (
@@ -9,7 +9,10 @@ export default function GuestLayout({ title, children }) {
 
       <FlashNotification />
 
-      <Container size={440} my={80}>
+      <Container
+        size={440}
+        my={80}
+      >
         {children}
       </Container>
     </>

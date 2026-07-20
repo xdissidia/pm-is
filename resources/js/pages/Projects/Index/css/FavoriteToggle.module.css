@@ -1,7 +1,7 @@
 .button svg {
-    transform: scale(1);
+  transform: scale(1);
 
-    @mixin hover {
-        transform: scale(1.07);
-    }
+  @mixin hover {
+    transform: scale(1.07);
+  }
 }

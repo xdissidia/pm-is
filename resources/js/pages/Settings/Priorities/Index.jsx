@@ -25,7 +25,12 @@ const PrioritiesIndex = () => {
   ]);
 
   const rows = items.data.length ? (
-    items.data.map(item => <TableRow item={item} key={item.id} />)
+    items.data.map(item => (
+      <TableRow
+        item={item}
+        key={item.id}
+      />
+    ))
   ) : (
     <TableRowEmpty colSpan={columns.length} />
   );
@@ -35,10 +40,16 @@ const PrioritiesIndex = () => {
 
   return (
     <>
-      <Grid justify='space-between' align='center'>
+      <Grid
+        justify='space-between'
+        align='center'
+      >
         <Grid.Col span='content'>
           <Group>
-            <SearchInput placeholder='Search priorities' search={search} />
+            <SearchInput
+              placeholder='Search priorities'
+              search={search}
+            />
           </Group>
         </Grid.Col>
         <Grid.Col span='content'>
@@ -54,14 +65,23 @@ const PrioritiesIndex = () => {
         </Grid.Col>
       </Grid>
 
-      <Table.ScrollContainer maw={700} my='lg'>
+      <Table.ScrollContainer
+        maw={700}
+        my='lg'
+      >
         <Table verticalSpacing='sm'>
-          <TableHead columns={columns} sort={sort} />
+          <TableHead
+            columns={columns}
+            sort={sort}
+          />
           <Table.Tbody>{rows}</Table.Tbody>
         </Table>
       </Table.ScrollContainer>
 
-      <Pagination current={items.meta.current_page} pages={items.meta.last_page} />
+      <Pagination
+        current={items.meta.current_page}
+        pages={items.meta.last_page}
+      />
     </>
   );
 };

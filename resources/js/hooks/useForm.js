@@ -1,6 +1,6 @@
-import { useScrollIntoView } from "@mantine/hooks";
-import { useForm as usePrecognitionForm } from "laravel-precognition-react-inertia";
-import { isObject } from "lodash";
+import { useScrollIntoView } from '@mantine/hooks';
+import { useForm as usePrecognitionForm } from 'laravel-precognition-react-inertia';
+import { isObject } from 'lodash';
 
 export default function useForm(method, url, data) {
   const form = usePrecognitionForm(method, url, data);

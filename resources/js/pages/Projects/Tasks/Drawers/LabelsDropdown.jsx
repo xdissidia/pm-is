@@ -1,4 +1,4 @@
-import { Label } from "@/components/Label";
+import { Label } from '@/components/Label';
 import {
   Box,
   CheckIcon,
@@ -9,18 +9,18 @@ import {
   PillsInput,
   rem,
   useCombobox,
-} from "@mantine/core";
+} from '@mantine/core';
 
 export default function LabelsDropdown({ items, selected, onChange, ...props }) {
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
-    onDropdownOpen: () => combobox.updateSelectedOptionIndex("active"),
+    onDropdownOpen: () => combobox.updateSelectedOptionIndex('active'),
   });
 
-  const handleValueSelect = (val) =>
-    onChange(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val]);
+  const handleValueSelect = val =>
+    onChange(selected.includes(val) ? selected.filter(v => v !== val) : [...selected, val]);
 
-  const handleValueRemove = (val) => onChange(selected.filter((v) => v !== val));
+  const handleValueRemove = val => onChange(selected.filter(v => v !== val));
 
   return (
     <Box {...props}>
@@ -29,14 +29,17 @@ export default function LabelsDropdown({ items, selected, onChange, ...props }) 
         store={combobox}
         onOptionSubmit={handleValueSelect}
         withinPortal={false}
-        disabled={!can("edit task")}
+        disabled={!can('edit task')}
       >
         <Combobox.DropdownTarget>
-          <PillsInput pointer onClick={() => combobox.toggleDropdown()}>
+          <PillsInput
+            pointer
+            onClick={() => combobox.toggleDropdown()}
+          >
             <Pill.Group style={{ rowGap: rem(3), columnGap: rem(12) }}>
               {selected.length > 0 ? (
-                selected.map((id) => {
-                  const label = items.find((i) => i.id === id);
+                selected.map(id => {
+                  const label = items.find(i => i.id === id);
 
                   return (
                     <Label
@@ -54,10 +57,10 @@ export default function LabelsDropdown({ items, selected, onChange, ...props }) 
 
               <Combobox.EventsTarget>
                 <PillsInput.Field
-                  type="hidden"
+                  type='hidden'
                   onBlur={() => combobox.closeDropdown()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Backspace") {
+                  onKeyDown={event => {
+                    if (event.key === 'Backspace') {
                       event.preventDefault();
                       handleValueRemove(selected[selected.length - 1]);
                     }
@@ -70,9 +73,13 @@ export default function LabelsDropdown({ items, selected, onChange, ...props }) 
 
         <Combobox.Dropdown>
           <Combobox.Options>
-            {items.map((label) => (
-              <Combobox.Option value={label.id} key={label.id} active={selected.includes(label.id)}>
-                <Group gap="sm">
+            {items.map(label => (
+              <Combobox.Option
+                value={label.id}
+                key={label.id}
+                active={selected.includes(label.id)}
+              >
+                <Group gap='sm'>
                   {selected.includes(label.id) ? <CheckIcon size={12} /> : null}
                   <Group gap={7}>
                     <Label

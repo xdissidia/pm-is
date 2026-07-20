@@ -17,13 +17,15 @@ import {
   Title,
 } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { usePage } from "@inertiajs/react";
+import { usePage } from '@inertiajs/react';
 import { PricingType } from '@/utils/enums';
 
-const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
+const ProjectCreate = ({ dropdowns: { companies, users, currencies, tags } }) => {
   const [currencySymbol, setCurrencySymbol] = useState();
 
-  let { auth: { user } } = usePage().props;
+  let {
+    auth: { user },
+  } = usePage().props;
 
   const [form, submit, updateValue] = useForm('post', route('projects.store'), {
     name: '',
@@ -31,9 +33,8 @@ const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
     default_pricing_type: PricingType.HOURLY,
     rate: 0,
     client_company_id: '',
-    users: [
-      user.id.toString(),
-    ],
+    users: [user.id.toString()],
+    tags: [],
   });
 
   // const pricingTypes = [
@@ -122,6 +123,18 @@ const ProjectCreate = ({ dropdowns: { companies, users, currencies } }) => {
             onChange={values => updateValue('users', values)}
             data={users}
             error={form.errors.users}
+          />
+
+          <MultiSelect
+            label='Tags'
+            placeholder='Select tags'
+            mt='md'
+            searchable
+            clearable
+            value={form.data.tags}
+            onChange={values => updateValue('tags', values)}
+            data={tags.map(tag => ({ value: tag.id.toString(), label: tag.name }))}
+            error={form.errors.tags}
           />
 
           {/* <Select

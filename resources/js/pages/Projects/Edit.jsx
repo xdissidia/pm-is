@@ -20,7 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { PricingType } from '@/utils/enums';
 
-const ProjectEdit = ({ dropdowns: { companies, users, currencies } }) => {
+const ProjectEdit = ({ dropdowns: { companies, users, currencies, tags } }) => {
   const { item } = usePage().props;
   const [currencySymbol, setCurrencySymbol] = useState();
 
@@ -32,6 +32,7 @@ const ProjectEdit = ({ dropdowns: { companies, users, currencies } }) => {
     client_company_id: item.client_company_id || '',
     rate: item.rate / 100 || 0,
     users: item.users.map(i => i.id.toString()),
+    tags: item.tags?.map(i => i.id.toString()) ?? [],
   });
 
   useEffect(() => {
@@ -120,6 +121,18 @@ const ProjectEdit = ({ dropdowns: { companies, users, currencies } }) => {
             onChange={values => updateValue('users', values)}
             data={users}
             error={form.errors.users}
+          />
+
+          <MultiSelect
+            label='Tags'
+            placeholder='Select tags'
+            mt='md'
+            searchable
+            clearable
+            value={form.data.tags}
+            onChange={values => updateValue('tags', values)}
+            data={tags.map(tag => ({ value: tag.id.toString(), label: tag.name }))}
+            error={form.errors.tags}
           />
 
           <Select

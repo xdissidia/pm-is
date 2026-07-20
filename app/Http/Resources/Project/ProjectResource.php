@@ -21,6 +21,7 @@ class ProjectResource extends JsonResource
             'description' => $this->description,
             'favorite' => $this->favorite,
             'client_company' => $this->clientCompany->only(['id', 'name']),
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map->only(['id', 'name', 'color'])),
             'users_with_access' => PermissionService::usersWithAccessToProject($this),
             'all_tasks_count' => $this->all_tasks_count,
             'completed_tasks_count' => $this->completed_tasks_count,

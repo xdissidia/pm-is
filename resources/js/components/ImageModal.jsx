@@ -1,6 +1,6 @@
-import useImageLoader from "@/hooks/useImageLoader";
-import { Center, Image, Loader, Modal } from "@mantine/core";
-import { useEffect } from "react";
+import useImageLoader from '@/hooks/useImageLoader';
+import { Center, Image, Loader, Modal } from '@mantine/core';
+import { useEffect } from 'react';
 
 export default function ImageModal({ image, opened, close }) {
   const { loadImage, loading } = useImageLoader();
@@ -14,7 +14,7 @@ export default function ImageModal({ image, opened, close }) {
       title={image?.name}
       opened={opened}
       onClose={close}
-      size="auto"
+      size='auto'
       centered
       overlayProps={{
         backgroundOpacity: 0.55,
@@ -22,15 +22,22 @@ export default function ImageModal({ image, opened, close }) {
       }}
     >
       {loading ? (
-        <Center miw={150} maw="80vw" h={150}>
-          <Loader color="blue" size="lg" />
+        <Center
+          miw={150}
+          maw='80vw'
+          h={150}
+        >
+          <Loader
+            color='blue'
+            size='lg'
+          />
         </Center>
       ) : (
         <Image
           src={image?.path}
-          fit="contain"
+          fit='contain'
           style={{
-            maxHeight: "80vh",
+            maxHeight: '80vh',
           }}
         />
       )}

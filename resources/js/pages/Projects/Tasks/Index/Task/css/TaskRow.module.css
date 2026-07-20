@@ -1,86 +1,91 @@
 .checkbox input {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .disabledCheckbox input {
-    cursor: default;
-    pointer-events: none;
+  cursor: default;
+  pointer-events: none;
 }
 
 .user {
-    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-    border-radius: var(--mantine-radius-xl);
-    border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
-    transition: 0.3s ease border, 0.3s ease color;
-    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-white));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-xl);
+  border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-6));
+  transition:
+    0.3s ease border,
+    0.3s ease color;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-white));
 
-    @mixin hover {
-        color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
-        border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-    }
+  @mixin hover {
+    color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-white));
+    border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  }
 
-    &>span {
-        cursor: pointer;
-    }
+  & > span {
+    cursor: pointer;
+  }
 }
 
 .priorityIndicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: rem(6px);
-    border-radius: var(--mantine-radius-md) 0 0 var(--mantine-radius-md);
-    cursor: pointer;
-    opacity: 0.5;
-    transition: 0.3s ease opacity;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: rem(6px);
+  border-radius: var(--mantine-radius-md) 0 0 var(--mantine-radius-md);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: 0.3s ease opacity;
 }
 
 .task {
-    transition: 0.3s ease color, 0.3s ease background-color;
-    padding: 5px 10px 5px 15px;
-    border-radius: var(--mantine-radius-md);
-    position: relative;
+  transition:
+    0.3s ease color,
+    0.3s ease background-color;
+  padding: 5px 10px 5px 15px;
+  border-radius: var(--mantine-radius-md);
+  position: relative;
 
-    @mixin hover {
-        color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-white));
-        background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+  @mixin hover {
+    color: light-dark(var(--mantine-color-dark-4), var(--mantine-color-white));
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
 
-        .actions {
-            opacity: 0.5;
-        }
-
-        .dragHandle {
-            opacity: 0.2;
-        }
-
-        .user {
-            border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-        }
-
-        .priorityIndicator {
-            opacity: 1;
-        }
+    .actions {
+      opacity: 0.5;
     }
+
+    .dragHandle {
+      opacity: 0.2;
+    }
+
+    .user {
+      border: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+    }
+
+    .priorityIndicator {
+      opacity: 1;
+    }
+  }
 }
 
 .name {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .actions {
-    opacity: 0;
-    transition: 0.3s ease opacity;
+  opacity: 0;
+  transition: 0.3s ease opacity;
 }
 
-.itemDragging {}
+.itemDragging {
+}
 
 .dragHandle {
-    opacity: 0;
-    transition: 0.3s ease opacity;
-    margin-top: 7px;
+  opacity: 0;
+  transition: 0.3s ease opacity;
+  margin-top: 7px;
 }
 
 .completed {
-    opacity: 0.35;
+  opacity: 0.35;
 }

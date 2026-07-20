@@ -14,6 +14,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Settings\LabelController;
 use App\Http\Controllers\Settings\OwnerCompanyController;
+use App\Http\Controllers\Settings\ProjectTagController;
 use App\Http\Controllers\Settings\RoleController;
 use App\Http\Controllers\Settings\TaskPriorityController;
 use App\Http\Controllers\Task\AttachmentController;
@@ -128,6 +129,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
         Route::resource('task-priorities', TaskPriorityController::class)->except(['show']);
         Route::post('task-priorities/{priorityId}/restore', [TaskPriorityController::class, 'restore'])->name('task-priorities.restore');
+
+        Route::resource('project-tags', ProjectTagController::class)->except(['show']);
+        Route::post('project-tags/{projectTagId}/restore', [ProjectTagController::class, 'restore'])->name('project-tags.restore');
     });
 
     // Account
