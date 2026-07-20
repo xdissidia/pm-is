@@ -1,6 +1,6 @@
 import Card from '@/components/Card';
 import { redirectTo } from '@/utils/route';
-import { Group, RingProgress, Stack, Text, Title, Tooltip, rem } from '@mantine/core';
+import { Badge, Group, RingProgress, Stack, Text, Title, Tooltip, rem } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import round from 'lodash/round';
 import classes from './css/ProjectCard.module.css';
@@ -48,6 +48,24 @@ export function ProjectCard({ project }) {
           >
             {project.client_company.name}
           </Text>
+          {project.tags?.length > 0 && (
+            <Group
+              gap={6}
+              mb={4}
+            >
+              {project.tags.map(tag => (
+                <Badge
+                  key={tag.id}
+                  color={tag.color}
+                  variant='light'
+                  radius='sm'
+                  size='sm'
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+            </Group>
+          )}
           <div>
             <Tooltip
               label='Completed tasks'

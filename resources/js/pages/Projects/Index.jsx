@@ -1,5 +1,6 @@
 import ArchivedFilterButton from '@/components/ArchivedFilterButton';
 import EmptyWithIcon from '@/components/EmptyWithIcon';
+import ProjectTagFilter from '@/components/ProjectTagFilter';
 import SearchInput from '@/components/SearchInput';
 import useAuthorization from '@/hooks/useAuthorization';
 import Layout from '@/layouts/MainLayout';
@@ -10,7 +11,7 @@ import { IconPlus, IconSearch } from '@tabler/icons-react';
 import ProjectCard from './Index/ProjectCard';
 
 const ProjectsIndex = () => {
-  const { items } = usePage().props;
+  const { items, tags } = usePage().props;
   const { isAdmin } = useAuthorization();
 
   const search = search => reloadWithQuery({ search });
@@ -42,6 +43,8 @@ const ProjectsIndex = () => {
           )}
         </Grid.Col>
       </Grid>
+
+      <ProjectTagFilter tags={tags} />
 
       {items.length ? (
         <Flex

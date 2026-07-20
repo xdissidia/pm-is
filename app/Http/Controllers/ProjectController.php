@@ -24,6 +24,7 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Projects/Index', [
+            'tags' => ProjectTag::orderBy('name')->get(['id', 'name', 'color']),
             'items' => ProjectResource::collection(
                 Project::searchByQueryString()
                     ->when($request->user()->isNotAdmin(), function ($query) {
@@ -31,6 +32,10 @@ class ProjectController extends Controller
                             ->orWhereHas('users', fn ($query) => $query->where('id', auth()->id()));
                     })
                     ->when($request->has('archived'), fn ($query) => $query->onlyArchived())
+                    ->when($request->filled('tags'), fn ($query) => $query->whereHas(
+                        'tags',
+                        fn ($query) => $query->whereIn('project_tags.id', (array) $request->input('tags'))
+                    ))
                     ->with([
                         'clientCompany:id,name',
                         'clientCompany.clients:id,name,avatar',
