@@ -122,7 +122,16 @@ class TaskController extends Controller
         $this->authorize('reorder', [Task::class, $project]);
 
         Task::setNewOrder($request->ids);
-        Task::whereIn('id', $request->ids)->update(['group_id' => $request->to_group_id]);
+
+        // Through the models, not a bulk query: the observer only hears the
+        // group change this way, and it is what syncs a STORM ticket when its
+        // task is dragged to another column. Only the dragged task actually
+        // changes group, so this is one update, not one per task.
+        Task::whereIn('id', $request->ids)
+            ->where('group_id', '!=', $request->to_group_id)
+            ->get()
+            ->each
+            ->update(['group_id' => $request->to_group_id]);
 
         TaskGroupChanged::dispatch(
             $project->id,

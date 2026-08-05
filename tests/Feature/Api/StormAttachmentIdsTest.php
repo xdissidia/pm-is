@@ -90,6 +90,43 @@ it('keeps the storm attachment ids sent with an update', function () {
     ($this->cleanUp)($task->id);
 });
 
+it('removes the attachments storm dropped off the ticket', function () {
+    $task = (new CreateTask)->create($this->project, [
+        'group_id' => $this->group->id,
+        'storm_ticket_id' => 512,
+        'name' => 'Ticket from STORM',
+        'description' => null,
+        'due_on' => null,
+        'estimation' => null,
+        'hidden_from_clients' => false,
+        'billable' => true,
+        'attachments' => [
+            34 => UploadedFile::fake()->create('gone.pdf', 2),
+            35 => UploadedFile::fake()->create('kept.pdf', 2),
+        ],
+        'attachment_storm_ids' => [34 => 34, 35 => 35],
+    ]);
+
+    $gone = storage_path('app/public'.str_replace('/storage', '', $task->attachments->firstWhere('name', 'gone.pdf')->path));
+
+    expect(file_exists($gone))->toBeTrue();
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson("/api/v1/tasks/{$task->id}", [
+            // 99 was never linked — a stale removal must not fail the request.
+            'remove_attachments' => [34, 99],
+        ])
+        ->assertOk();
+
+    expect(Attachment::where('task_id', $task->id)->pluck('name')->all())->toBe(['kept.pdf'])
+        ->and(file_exists($gone))->toBeFalse();
+
+    // The deletion came *from* STORM, so it must not be echoed back.
+    Http::assertNothingSent();
+
+    ($this->cleanUp)($task->id);
+});
+
 it('does not mistake a plain upload list for storm ids', function () {
     $response = $this
         ->actingAs($this->user, 'sanctum')

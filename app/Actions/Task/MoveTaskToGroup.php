@@ -16,8 +16,9 @@ class MoveTaskToGroup
      * A null position appends the task to the end of the group. Moving a task
      * into the group it is already in is treated as a reorder.
      *
-     * A task stored unfiled has no project or group of its own; it adopts the
-     * destination group's project here, and only then gets its task number.
+     * A destination group in another project rehomes the task: it takes that
+     * project and is numbered there, since numbers run per project. Unfiled
+     * tasks — no project or group at all — file in the same way.
      */
     public function move(Task $task, TaskGroup $group, ?int $position = null): Task
     {
@@ -25,13 +26,12 @@ class MoveTaskToGroup
             $fromGroupId = $task->group_id;
             $toGroupId = $group->id;
             $sameGroup = $fromGroupId === $toGroupId;
-            $unfiled = $task->project_id === null;
-            $projectId = $task->project_id ?? $group->project_id;
+            $rehomed = $task->project_id !== $group->project_id;
 
-            $sourceIds = $fromGroupId === null ? [] : $this->orderedTaskIds($projectId, $fromGroupId);
+            $sourceIds = $fromGroupId === null ? [] : $this->orderedTaskIds($task->project_id, $fromGroupId);
             $fromIndex = (int) array_search($task->id, $sourceIds, true);
 
-            $targetIds = $sameGroup ? $sourceIds : $this->orderedTaskIds($projectId, $toGroupId);
+            $targetIds = $sameGroup ? $sourceIds : $this->orderedTaskIds($group->project_id, $toGroupId);
             $targetIds = array_values(array_diff($targetIds, [$task->id]));
 
             $toIndex = $position === null ? count($targetIds) : min($position, count($targetIds));
@@ -40,10 +40,10 @@ class MoveTaskToGroup
 
             $attributes = $sameGroup ? [] : ['group_id' => $toGroupId];
 
-            if ($unfiled) {
+            if ($rehomed) {
                 // Counted before the task itself joins the project.
-                $attributes['number'] = Task::withArchived()->where('project_id', $projectId)->count() + 1;
-                $attributes['project_id'] = $projectId;
+                $attributes['number'] = Task::withArchived()->where('project_id', $group->project_id)->count() + 1;
+                $attributes['project_id'] = $group->project_id;
             }
 
             if ($attributes !== []) {
@@ -53,8 +53,8 @@ class MoveTaskToGroup
             Task::setNewOrder($targetIds);
 
             $sameGroup
-                ? TaskOrderChanged::dispatch($projectId, $toGroupId, $fromIndex, $toIndex)
-                : TaskGroupChanged::dispatch($projectId, $fromGroupId, $toGroupId, $fromIndex, $toIndex);
+                ? TaskOrderChanged::dispatch($group->project_id, $toGroupId, $fromIndex, $toIndex)
+                : TaskGroupChanged::dispatch($group->project_id, $fromGroupId, $toGroupId, $fromIndex, $toIndex);
 
             return $task->refresh();
         });

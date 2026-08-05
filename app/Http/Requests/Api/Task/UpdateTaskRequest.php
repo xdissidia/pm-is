@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Task;
 
 use App\Enums\StormTicketStatus;
+use App\Enums\StormTicketWorkStatus;
 use App\Http\Requests\Api\Concerns\ReadsStormUploads;
 use App\Http\Requests\Api\Concerns\ValidatesTaskInput;
 use Illuminate\Contracts\Validation\Validator;
@@ -14,7 +15,9 @@ class UpdateTaskRequest extends FormRequest
     use ReadsStormUploads, ValidatesTaskInput;
 
     /**
-     * Fields this endpoint understands. Anything absent is left untouched.
+     * Fields this endpoint understands. Anything absent is left untouched —
+     * except the task group, which the payload states absolutely (omitting it
+     * unfiles the task, see UpdateTaskAttributes).
      */
     public const UPDATABLE = [
         'title',
@@ -23,6 +26,7 @@ class UpdateTaskRequest extends FormRequest
         'subscribers',
         'task_group_id',
         'storm_ticket_status',
+        'storm_ticket_work_status',
         'completed',
         'labels',
         'due_on',
@@ -30,6 +34,7 @@ class UpdateTaskRequest extends FormRequest
         'priority_id',
         'billable',
         'hidden_from_clients',
+        'remove_attachments',
     ];
 
     /**
@@ -41,19 +46,18 @@ class UpdateTaskRequest extends FormRequest
     }
 
     /**
-     * Accept any casing or spacing for the ticket status ("on going",
-     * "ONGOING") by folding it to the canonical value before the rules run.
+     * Accept any casing or spacing for the two statuses ("on going",
+     * "Closed (resolved)") by folding them to canonical values before the
+     * rules run.
      */
     protected function prepareForValidation(): void
     {
-        if (! $this->has('storm_ticket_status')) {
-            return;
+        if ($this->has('storm_ticket_status') && ($status = StormTicketStatus::fromLoose($this->input('storm_ticket_status')))) {
+            $this->merge(['storm_ticket_status' => $status->value]);
         }
 
-        $status = StormTicketStatus::fromLoose($this->input('storm_ticket_status'));
-
-        if ($status) {
-            $this->merge(['storm_ticket_status' => $status->value]);
+        if ($this->has('storm_ticket_work_status') && ($work = StormTicketWorkStatus::fromLoose($this->input('storm_ticket_work_status')))) {
+            $this->merge(['storm_ticket_work_status' => $work->value]);
         }
     }
 
@@ -69,12 +73,23 @@ class UpdateTaskRequest extends FormRequest
             'body' => ['sometimes', 'nullable', 'string'],
             'uploads' => ['sometimes', 'array', 'max:20'],
             'uploads.*' => ['file', 'max:25600'],
+            // STORM's own ids for files it dropped off the ticket — the same
+            // ids its uploads arrive under (see ReadsStormUploads). Unknown
+            // ids are skipped, so a re-sent removal cannot fail.
+            'remove_attachments' => ['sometimes', 'array'],
+            'remove_attachments.*' => ['integer', 'distinct'],
             'assignees' => ['sometimes', 'array'],
             'assignees.*' => ['integer', 'distinct', 'exists:users,id'],
             'subscribers' => ['sometimes', 'array'],
             'subscribers.*' => ['integer', 'distinct', 'exists:users,id'],
-            'task_group_id' => ['sometimes', 'integer', $this->taskGroupInProjectRule()],
+            // Omitting it (or sending null) unfiles the task — STORM states
+            // the ticket's group absolutely on every update.
+            'task_group_id' => ['sometimes', 'nullable', 'integer', $this->taskGroupInProjectRule()],
+            // Both are ignored for an unfiled task (see UpdateTaskAttributes).
+            // The group id places the task first; the status then picks the
+            // final column by name — "STORM" while live, "Done" once closed.
             'storm_ticket_status' => ['sometimes', 'string', Rule::enum(StormTicketStatus::class)],
+            'storm_ticket_work_status' => ['sometimes', 'string', Rule::enum(StormTicketWorkStatus::class)],
             'completed' => ['sometimes', 'boolean'],
             'labels' => ['sometimes', 'array'],
             'labels.*' => ['integer', 'distinct', 'exists:labels,id'],
@@ -99,53 +114,7 @@ class UpdateTaskRequest extends FormRequest
                     'Send at least one field to update: '.implode(', ', [...self::UPDATABLE, 'uploads']).'.',
                 );
             }
-
-            $this->validateStormTicketStatus($validator);
         });
-    }
-
-    /**
-     * The ticket status decides the task group, so it cannot be combined with
-     * an explicit one, and the group it maps to has to actually exist.
-     */
-    protected function validateStormTicketStatus(Validator $validator): void
-    {
-        if (! $this->has('storm_ticket_status') || $validator->errors()->has('storm_ticket_status')) {
-            return;
-        }
-
-        if ($this->has('task_group_id')) {
-            $validator->errors()->add(
-                'storm_ticket_status',
-                'Send either storm_ticket_status or task_group_id, not both — each one decides the task group.',
-            );
-
-            return;
-        }
-
-        $status = StormTicketStatus::tryFrom((string) $this->input('storm_ticket_status'));
-        $project = $this->project();
-
-        if (! $status) {
-            return;
-        }
-
-        // Nothing to look the group up in — the task is still unfiled.
-        if (! $project) {
-            $validator->errors()->add(
-                'storm_ticket_status',
-                'This task is not in a project yet — send task_group_id to file it into one.',
-            );
-
-            return;
-        }
-
-        if (! $status->taskGroupIn($project->id)) {
-            $validator->errors()->add(
-                'storm_ticket_status',
-                "This project has no \"{$status->taskGroupName()}\" task group to move the task into.",
-            );
-        }
     }
 
     /**

@@ -55,12 +55,20 @@ trait ValidatesTaskInput
 
     /**
      * A task group can only be one that lives in this project and is not
-     * archived. A task with no project yet is the exception: it takes whichever
-     * project the group belongs to, so any live group will do.
+     * archived. Two exceptions take any live group: a task with no project
+     * yet, and a STORM-linked task — its identity is the ticket, not the
+     * project, so STORM may refile it anywhere (the move restamps the
+     * project, see MoveTaskToGroup).
      */
     protected function taskGroupInProjectRule(): Exists
     {
         $rule = Rule::exists('task_groups', 'id')->whereNull('archived_at');
+
+        $task = $this->route('task');
+
+        if ($task instanceof Task && filled($task->storm_ticket_id)) {
+            return $rule;
+        }
 
         $project = $this->project();
 

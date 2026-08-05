@@ -112,24 +112,23 @@ class TaskObserver
             $changes['body'] = $task->description;
         }
 
-        // Completing a task and moving it between columns are the two things
-        // that mean the same as a ticket changing state.
-        if ($task->wasChanged('completed_at') || $task->wasChanged('group_id')) {
-            $status = $task->completed_at !== null
-                ? StormTicketStatus::CLOSED
-                : StormTicketStatus::forTaskGroup($task->taskGroup()->value('name'));
+        // The two fields answer different questions: the status tells which
+        // column the task sits in, so only a move changes it; completion
+        // speaks through the work status alone.
+        if ($task->wasChanged('group_id')) {
+            $changes['status'] = StormTicketStatus::forTaskGroup($task->taskGroup()->value('name'))->value;
+        }
 
-            $changes['status'] = $status->value;
-
-            // Completing is what *resolves* the ticket (`resolved` is STORM's
-            // slug for "Closed (resolved)"), and un-completing puts it back to
-            // ongoing — a bare move into Done only closes it. A move into a
-            // working column marks both fields ongoing.
-            if ($task->wasChanged('completed_at')) {
-                $changes['work_status'] = $task->completed_at !== null ? 'resolved' : 'ongoing';
-            } elseif ($status === StormTicketStatus::ON_GOING) {
-                $changes['work_status'] = 'ongoing';
-            }
+        // Completing is what *resolves* the ticket (`resolved` is STORM's slug
+        // for "Closed (resolved)") — unless the task wears the "Blocked"
+        // label, which turns the same click into a close-without-fixing-it:
+        // unfinished. Un-completing puts the ticket back to ongoing either way.
+        if ($task->wasChanged('completed_at')) {
+            $changes['work_status'] = match (true) {
+                $task->completed_at === null => 'ongoing',
+                $task->labels()->where('name', 'Blocked')->exists() => 'unfinished',
+                default => 'resolved',
+            };
         }
 
         if (! empty($changes)) {

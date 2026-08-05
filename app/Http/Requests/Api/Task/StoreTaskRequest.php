@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Api\Task;
 
+use App\Enums\StormTicketStatus;
+use App\Enums\StormTicketWorkStatus;
 use App\Http\Requests\Api\Concerns\ReadsStormUploads;
 use App\Http\Requests\Api\Concerns\ValidatesTaskInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTaskRequest extends FormRequest
 {
@@ -17,6 +20,22 @@ class StoreTaskRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Accept any casing or spacing for the two statuses ("on going",
+     * "Closed (resolved)") by folding them to canonical values before the
+     * rules run.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('storm_ticket_status') && ($status = StormTicketStatus::fromLoose($this->input('storm_ticket_status')))) {
+            $this->merge(['storm_ticket_status' => $status->value]);
+        }
+
+        if ($this->has('storm_ticket_work_status') && ($work = StormTicketWorkStatus::fromLoose($this->input('storm_ticket_work_status')))) {
+            $this->merge(['storm_ticket_work_status' => $work->value]);
+        }
     }
 
     /**
@@ -35,6 +54,11 @@ class StoreTaskRequest extends FormRequest
             // STORM stamps the ticket it is creating the task for, so PMIS does
             // not file that same ticket back (see FileStormTicket).
             'storm_ticket_id' => ['nullable', 'integer'],
+            // STORM sends both on create too. The status is accepted but says
+            // nothing here — task_group_id alone decides where the task lands;
+            // the work status lets a ticket arrive already closed.
+            'storm_ticket_status' => ['sometimes', 'string', Rule::enum(StormTicketStatus::class)],
+            'storm_ticket_work_status' => ['sometimes', 'string', Rule::enum(StormTicketWorkStatus::class)],
             'uploads' => ['nullable', 'array', 'max:20'],
             'uploads.*' => ['file', 'max:25600'],
             'subscribers' => ['nullable', 'array'],

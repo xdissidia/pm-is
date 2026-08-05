@@ -99,20 +99,21 @@ it('pushes an edited description as the ticket body', function () {
     Http::assertSent(fn (Request $request) => $request['body'] === '<p>Antenna motor replaced.</p>');
 });
 
-it('closes and resolves the ticket when the task is completed, and reopens it', function () {
+it('resolves the ticket when the task is completed, and puts it back to ongoing when reopened', function () {
     $task = ($this->task)();
 
     (new UpdateTask)->update($task, ['completed_at' => now()]);
 
-    // Completing resolves the ticket, not just closes it.
-    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::CLOSED->value
-        && $request['work_status'] === 'resolved');
+    // Completion speaks through the work status alone — the status only ever
+    // reports column moves, and this task has not moved.
+    Http::assertSent(fn (Request $request) => $request['work_status'] === 'resolved'
+        && ! isset($request['status']));
 
     (new UpdateTask)->update($task->refresh(), ['completed_at' => null]);
 
     // Un-completing puts the work back in play: ongoing, not resolved.
-    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::OPEN->value
-        && $request['work_status'] === 'ongoing');
+    Http::assertSent(fn (Request $request) => $request['work_status'] === 'ongoing'
+        && ! isset($request['status']));
 });
 
 it('follows the task between the storm and done columns', function () {
@@ -129,13 +130,62 @@ it('follows the task between the storm and done columns', function () {
     Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::OPEN->value);
 });
 
-it('marks the ticket on-going on both fields when the task moves into a working column', function () {
+it('marks the ticket on-going when the task moves into a working column', function () {
     $doing = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'In Progress']);
 
     (new MoveTaskToGroup)->move(($this->task)(), $doing);
 
     Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::ON_GOING->value
-        && $request['work_status'] === 'ongoing');
+        && ! isset($request['work_status']));
+});
+
+it('reports a blocked task unfinished when it is completed', function () {
+    $blocked = \App\Models\Label::create(['name' => 'Blocked', 'color' => 'red']);
+    $task = ($this->task)();
+
+    \App\Support\StormSync::withoutSyncing(fn () => (new UpdateTask)->update($task, ['labels' => [$blocked->id]]));
+
+    (new UpdateTask)->update($task->refresh(), ['completed_at' => now()]);
+
+    Http::assertSent(fn (Request $request) => $request['work_status'] === 'unfinished');
+});
+
+it('reports a done ticket unfinished when tagged blocked, and resolved when untagged', function () {
+    $blocked = \App\Models\Label::create(['name' => 'Blocked', 'color' => 'red']);
+    $task = ($this->task)();
+
+    \App\Support\StormSync::withoutSyncing(fn () => $task->update(['completed_at' => now()]));
+
+    (new UpdateTask)->update($task, ['labels' => [$blocked->id]]);
+
+    Http::assertSent(fn (Request $request) => $request['work_status'] === 'unfinished');
+
+    (new UpdateTask)->update($task->refresh(), ['labels' => []]);
+
+    Http::assertSent(fn (Request $request) => $request['work_status'] === 'resolved');
+});
+
+it('says nothing about the blocked label on a task that is not done', function () {
+    $blocked = \App\Models\Label::create(['name' => 'Blocked', 'color' => 'red']);
+
+    Http::fake();
+
+    $task = ($this->task)();
+
+    (new UpdateTask)->update($task, ['labels' => [$blocked->id]]);
+    (new UpdateTask)->update($task->refresh(), ['labels' => []]);
+
+    Http::assertNothingSent();
+});
+
+it('says nothing to storm about other labels', function () {
+    $urgent = \App\Models\Label::create(['name' => 'Urgent', 'color' => 'orange']);
+
+    Http::fake();
+
+    (new UpdateTask)->update(($this->task)(), ['labels' => [$urgent->id]]);
+
+    Http::assertNothingSent();
 });
 
 it('uploads attachments added after the ticket was filed', function () {
@@ -214,7 +264,7 @@ it('does not echo a change that came from storm', function () {
     $this->actingAs($this->user, 'sanctum')
         ->patchJson("/api/v1/tasks/{$task->id}", [
             'title' => 'Renamed by STORM',
-            'storm_ticket_status' => 'Closed',
+            'task_group_id' => $this->doneGroup->id,
             'completed' => true,
         ])
         ->assertOk();

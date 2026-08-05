@@ -111,7 +111,7 @@ it('files an unfiled task into a project when it is moved into a task group', fu
         ->and($task->number)->toBe(2);
 });
 
-it('rejects a storm ticket status on a task that is not in a project yet', function () {
+it('ignores ticket status and work status on an unfiled task', function () {
     $task = Task::create([
         'created_by_user_id' => $this->user->id,
         'name' => 'Unfiled ticket',
@@ -120,9 +120,36 @@ it('rejects a storm ticket status on a task that is not in a project yet', funct
     ]);
 
     $this->actingAs($this->user, 'sanctum')
-        ->patchJson("/api/v1/tasks/{$task->id}", ['storm_ticket_status' => 'Closed'])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('storm_ticket_status');
+        ->patchJson("/api/v1/tasks/{$task->id}", [
+            'storm_ticket_status' => 'Open',
+            'storm_ticket_work_status' => 'resolved',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.project.id', null);
+
+    $task->refresh();
+
+    expect($task->project_id)->toBeNull()
+        ->and($task->group_id)->toBeNull()
+        ->and($task->completed_at)->toBeNull()
+        ->and($task->name)->toBe('Unfiled ticket');
+});
+
+it('completes an unfiled task without filing it', function () {
+    $task = Task::create([
+        'created_by_user_id' => $this->user->id,
+        'name' => 'Unfiled ticket',
+        'hidden_from_clients' => false,
+        'billable' => true,
+    ]);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson("/api/v1/tasks/{$task->id}", ['completed' => true])
+        ->assertOk()
+        ->assertJsonPath('data.project.id', null);
+
+    expect($task->fresh()->completed_at)->not->toBeNull()
+        ->and($task->fresh()->project_id)->toBeNull();
 });
 
 it('updates an unfiled task without filing it', function () {

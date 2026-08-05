@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Task\CreateTask;
 use App\Actions\Task\MoveTaskToGroup;
 use App\Actions\Task\UpdateTaskAttributes;
+use App\Enums\StormTicketWorkStatus;
 use App\Events\Task\TaskUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Task\CompleteTaskRequest;
@@ -61,14 +62,27 @@ class TaskController extends Controller
             'attachment_storm_ids' => $request->uploadStormIds(),
         ]);
 
+        // A ticket can arrive already closed — its work status says so. Same
+        // rule as on update: ignored for an unfiled task, and never echoed
+        // back to STORM, since this request came from there.
+        $work = $request->validated('storm_ticket_work_status');
+
+        if ($work !== null && $task->project_id !== null) {
+            $task = StormSync::withoutSyncing(
+                fn () => (new UpdateTaskAttributes)->applyWorkStatus($task, StormTicketWorkStatus::from($work)),
+            );
+        }
+
         return response()->json([
             'data' => new TaskResource($task->loadDefault()->load('taskGroup:id,name')),
         ], 201);
     }
 
     /**
-     * Partially update a task — only the fields present in the body change.
-     * The project is taken from the task, so callers never pass it.
+     * Partially update a task — only the fields present in the body change,
+     * with one exception: the payload states the task group absolutely.
+     * Sending task_group_id (any project's, for a STORM-linked task) moves
+     * the task there; omitting it unfiles the task — no project, no group.
      */
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
     {
@@ -79,14 +93,18 @@ class TaskController extends Controller
         $changes = $request->changes();
 
         // Moving groups and completing are separate permissions in the web app;
-        // going through this endpoint must not be a way around them.
-        if (array_key_exists('task_group_id', $changes) || array_key_exists('storm_ticket_status', $changes)) {
-            // An unfiled task adopts the destination group's project, so that
-            // is the project the move has to be allowed in.
-            $this->authorize('reorder', [Task::class, $project ?? $this->projectOfGroup($changes['task_group_id'] ?? null)]);
+        // going through this endpoint must not be a way around them. Every
+        // update is a move of sorts here — the group is stated absolutely, so
+        // omitting it unfiles the task (see UpdateTaskAttributes) — and it has
+        // to be allowed where the task lands: the destination group's project,
+        // or the current one when the payload names no group.
+        $destination = $this->projectOfGroup($changes['task_group_id'] ?? null) ?? $project;
+
+        if ($destination !== null) {
+            $this->authorize('reorder', [Task::class, $destination]);
         }
 
-        if (array_key_exists('completed', $changes)) {
+        if (array_key_exists('completed', $changes) || array_key_exists('storm_ticket_work_status', $changes)) {
             $this->authorize('complete', [Task::class, $project]);
         }
 

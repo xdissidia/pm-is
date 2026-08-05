@@ -199,38 +199,143 @@ it('rejects a task group from another project', function () {
     expect($this->task->fresh()->group_id)->toBe($this->group->id);
 });
 
-it('routes a closed STORM ticket into the Done group', function () {
-    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
-    $this->task->update(['group_id' => $storm->id]);
+it('refiles a storm task into another project and restamps its project id', function () {
+    $this->task->update(['storm_ticket_id' => 900]);
+
+    $otherProject = Project::create([
+        'client_company_id' => ClientCompany::factory()->create()->id,
+        'name' => 'Other Project',
+        'hourly_rate' => 5000,
+        'default_pricing_type' => 'hourly',
+    ]);
+    $otherGroup = TaskGroup::create(['project_id' => $otherProject->id, 'name' => 'STORM', 'color' => 'red']);
+
+    // A task already there, so the refiled one is numbered second.
+    Task::create([
+        'project_id' => $otherProject->id,
+        'group_id' => $otherGroup->id,
+        'created_by_user_id' => $this->user->id,
+        'name' => 'Existing task',
+        'number' => 1,
+        'hidden_from_clients' => false,
+        'billable' => true,
+    ]);
 
     $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['storm_ticket_status' => 'Closed', 'completed' => true])
+        ->patchJson($this->url, ['task_group_id' => $otherGroup->id])
+        ->assertOk()
+        ->assertJsonPath('data.project.id', $otherProject->id)
+        ->assertJsonPath('data.group.id', $otherGroup->id)
+        ->assertJsonPath('data.number', 2);
+
+    $task = $this->task->fresh();
+
+    expect($task->project_id)->toBe($otherProject->id)
+        ->and($task->group_id)->toBe($otherGroup->id)
+        ->and($task->number)->toBe(2);
+});
+
+it('unfiles the task when the payload names no task group', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['title' => 'Pulled off the board'])
+        ->assertOk()
+        ->assertJsonPath('data.title', 'Pulled off the board')
+        ->assertJsonPath('data.project.id', null)
+        ->assertJsonPath('data.group.id', null)
+        ->assertJsonPath('data.number', null);
+
+    $task = $this->task->fresh();
+
+    expect($task->project_id)->toBeNull()
+        ->and($task->group_id)->toBeNull()
+        ->and($task->number)->toBeNull();
+});
+
+it('unfiles the task when task_group_id is sent as null', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['task_group_id' => null])
+        ->assertOk()
+        ->assertJsonPath('data.project.id', null)
+        ->assertJsonPath('data.group.id', null);
+
+    expect($this->task->fresh()->project_id)->toBeNull();
+});
+
+it('keeps the task in place when the payload restates its group', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['title' => 'Still on the board', 'task_group_id' => $this->group->id])
+        ->assertOk()
+        ->assertJsonPath('data.project.id', $this->project->id)
+        ->assertJsonPath('data.group.id', $this->group->id);
+
+    expect($this->task->fresh()->number)->toBe(1);
+});
+
+it('closes a ticket into Done via group and completed together', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->doneGroup->id,
+            'completed' => true,
+        ])
         ->assertOk()
         ->assertJsonPath('data.group.name', 'Done');
 
-    expect($this->task->fresh()->group_id)->toBe($this->doneGroup->id)
-        ->and($this->task->fresh()->completed_at)->not->toBeNull();
+    expect($this->task->fresh()->completed_at)->not->toBeNull();
 });
 
-it('routes open and on-going STORM tickets into the STORM group', function ($status) {
+it('lets the status pick the final column over the task_group_id sent with it', function () {
+    // STORM restates the group it knows on every update; a closed status
+    // still has to land the task in Done.
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->group->id,
+            'storm_ticket_status' => 'Closed',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.group.id', $this->doneGroup->id);
+
+    expect($this->task->fresh()->group_id)->toBe($this->doneGroup->id);
+});
+
+it('keeps the group id placement when the status names a missing column', function () {
+    // No "STORM" group here — the open status has nowhere to point, so the
+    // task stays where task_group_id put it.
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->doneGroup->id,
+            'storm_ticket_status' => 'Open',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.group.id', $this->doneGroup->id);
+});
+
+it('routes an open ticket status into the STORM group', function () {
     $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
 
     $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['storm_ticket_status' => $status])
+        ->patchJson($this->url, ['storm_ticket_status' => 'Open'])
         ->assertOk()
         ->assertJsonPath('data.group.name', 'STORM');
 
     expect($this->task->fresh()->group_id)->toBe($storm->id);
-})->with(['Open', 'On-going']);
+});
 
-it('accepts a loosely cased ticket status', function () {
-    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
-
+it('routes a closed ticket status into the Done group', function () {
     $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['storm_ticket_status' => 'ON GOING'])
+        ->patchJson($this->url, ['storm_ticket_status' => 'closed'])
+        ->assertOk()
+        ->assertJsonPath('data.group.name', 'Done');
+
+    expect($this->task->fresh()->group_id)->toBe($this->doneGroup->id);
+});
+
+it('leaves the group alone when the status names a missing column', function () {
+    // This project has no "STORM" group for an open ticket to land in.
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'Open'])
         ->assertOk();
 
-    expect($this->task->fresh()->group_id)->toBe($storm->id);
+    expect($this->task->fresh()->group_id)->toBe($this->group->id);
 });
 
 it('rejects an unknown ticket status', function () {
@@ -240,57 +345,73 @@ it('rejects an unknown ticket status', function () {
         ->assertJsonValidationErrors('storm_ticket_status');
 });
 
-it('rejects a ticket status sent together with a task group id', function () {
-    TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+it('marks the task done when the work status is resolved', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->group->id,
+            'storm_ticket_work_status' => 'Closed (resolved)',
+        ])
+        ->assertOk();
+
+    expect($this->task->fresh()->completed_at)->not->toBeNull()
+        ->and($this->task->fresh()->name)->toBe('Original title');
+});
+
+it('reopens the task when the work status is open', function () {
+    $this->task->update(['completed_at' => now()]);
 
     $this->actingAs($this->user, 'sanctum')
         ->patchJson($this->url, [
-            'storm_ticket_status' => 'Open',
-            'task_group_id' => $this->doneGroup->id,
-        ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('storm_ticket_status');
-
-    expect($this->task->fresh()->group_id)->toBe($this->group->id);
-});
-
-it('rejects a ticket status when the project has no matching group', function () {
-    // This project has "Done" but no "STORM" group.
-    $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['storm_ticket_status' => 'Open'])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('storm_ticket_status');
-
-    expect($this->task->fresh()->group_id)->toBe($this->group->id);
-});
-
-it('marks an unfinished closed ticket via title and completed', function () {
-    TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
-
-    $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, [
-            'title' => '[UNRESOLVED] group probe',
-            'storm_ticket_status' => 'Closed',
-            'completed' => true,
+            'task_group_id' => $this->group->id,
+            'storm_ticket_work_status' => 'open',
         ])
         ->assertOk()
-        ->assertJsonPath('data.title', '[UNRESOLVED] group probe')
-        ->assertJsonPath('data.group.name', 'Done');
-
-    expect($this->task->fresh()->completed_at)->not->toBeNull();
-});
-
-it('reopens a ticket back into the STORM group', function () {
-    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
-    $this->task->update(['group_id' => $this->doneGroup->id, 'completed_at' => now()]);
-
-    $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['storm_ticket_status' => 'Open', 'completed' => false])
-        ->assertOk()
-        ->assertJsonPath('data.group.name', 'STORM')
         ->assertJsonPath('data.completed_at', null);
 
-    expect($this->task->fresh()->group_id)->toBe($storm->id);
+    expect($this->task->fresh()->completed_at)->toBeNull();
+});
+
+it('labels an unfinished ticket blocked and marks it done', function () {
+    // An unrelated label that must survive the blocked bookkeeping.
+    $urgent = Label::create(['name' => 'Urgent', 'color' => 'orange']);
+    $this->task->labels()->attach($urgent->id);
+
+    $patch = fn (string $work) => $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->group->id,
+            'storm_ticket_work_status' => $work,
+        ])
+        ->assertOk();
+
+    $patch('closedunfinished');
+
+    $task = $this->task->fresh();
+
+    expect($task->completed_at)->not->toBeNull()
+        ->and($task->name)->toBe('Original title')
+        ->and($task->labels->pluck('name')->sort()->values()->all())->toBe(['Blocked', 'Urgent']);
+
+    // Sent again, the label is not stacked.
+    $patch('closedunfinished');
+
+    expect($this->task->fresh()->labels->where('name', 'Blocked'))->toHaveCount(1);
+
+    // Resolving takes the label off again, leaving the others alone.
+    $patch('closedresolved');
+
+    expect($this->task->fresh()->labels->pluck('name')->all())->toBe(['Urgent']);
+});
+
+it('lets the work status win over a completed flag in the same payload', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'task_group_id' => $this->group->id,
+            'completed' => false,
+            'storm_ticket_work_status' => 'resolved',
+        ])
+        ->assertOk();
+
+    expect($this->task->fresh()->completed_at)->not->toBeNull();
 });
 
 it('tags the task as done', function () {

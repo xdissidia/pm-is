@@ -85,6 +85,44 @@ it('creates a task with title, body, subscribers, assignees and uploads', functi
         ->and($task->attachments)->toHaveCount(1);
 });
 
+it('creates a ticket that arrives already closed unfinished', function () {
+    $response = $this
+        ->actingAs($this->user, 'sanctum')
+        ->postJson($this->url, [
+            'task_group_id' => $this->taskGroup->id,
+            'title' => 'Gave up on this one',
+            'storm_ticket_id' => 4242,
+            // The exact slugs STORM sends: statuses.name / progress.name.
+            'storm_ticket_status' => 'closed',
+            'storm_ticket_work_status' => 'closedunfinished',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.title', 'Gave up on this one');
+
+    $task = Task::findOrFail($response->json('data.id'));
+
+    expect($task->completed_at)->not->toBeNull()
+        ->and($task->labels->pluck('name')->all())->toBe(['Blocked'])
+        // On create the group id alone decides placement; the status is noise.
+        ->and($task->group_id)->toBe($this->taskGroup->id);
+});
+
+it('ignores a work status on a task stored unfiled', function () {
+    $response = $this
+        ->actingAs($this->user, 'sanctum')
+        ->postJson($this->url, [
+            'title' => 'Unfiled but resolved on the STORM side',
+            'storm_ticket_id' => 4243,
+            'storm_ticket_work_status' => 'closedresolved',
+        ])
+        ->assertCreated();
+
+    $task = Task::findOrFail($response->json('data.id'));
+
+    expect($task->completed_at)->toBeNull()
+        ->and($task->project_id)->toBeNull();
+});
+
 it('requires a title', function () {
     $this->actingAs($this->user, 'sanctum')
         ->post($this->url, ['task_group_id' => $this->taskGroup->id, 'body' => 'no title here'])
