@@ -49,7 +49,7 @@ class LoginRequest extends FormRequest
             return;
         }
 
-        if (!Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -59,9 +59,9 @@ class LoginRequest extends FormRequest
 
         RateLimiter::clear($this->throttleKey());
     }
+
     /**
      * Attempt to authenticate thru PAGASA SSO
-     * 
      */
     public function ssoAuthenticate()
     {
@@ -74,7 +74,7 @@ class LoginRequest extends FormRequest
             $response = $http->json();
             if ($response['auth'] == true) {
                 $user = User::where('active_directory_guid', $response['data']['guid'])->first();
-                if (!$user) {
+                if (! $user) {
                     $user = User::where('email', $response['data']['email'])->first();
                     if ($user) {
                         $user->update(
@@ -89,7 +89,7 @@ class LoginRequest extends FormRequest
                                 'email' => 'SSO authentication failed: Email not provided, please contact your VDI Administrator Local #1502.',
                             ]);
                         }
-                        $user = (new CreateUser())->create([
+                        $user = (new CreateUser)->create([
                             'active_directory_guid' => $response['data']['guid'],
                             'name' => $response['data']['name'],
                             'job_title' => $response['data']['position'],
@@ -103,9 +103,11 @@ class LoginRequest extends FormRequest
                     }
                 }
                 Auth::login($user);
+
                 return true;
             }
         }
+
         return false;
     }
 
@@ -116,7 +118,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -132,6 +134,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
+        return Str::transliterate(Str::lower($this->input('email')).'|'.$this->ip());
     }
 }

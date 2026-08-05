@@ -6,7 +6,6 @@ use App\Models\TaskUser;
 
 class TaskUserObserver
 {
-
     public function created(TaskUser $taskUser): void
     {
         $taskUser->load('task', 'user');
@@ -15,7 +14,7 @@ class TaskUserObserver
             'project_id' => $task->project_id,
             'user_id' => auth()->id(),
             'title' => 'Assigned user to task',
-            'subtitle' => "{$taskUser->user->name} was assigned to task \"{$task->name}\" by " . auth()->user()->name,
+            'subtitle' => "{$taskUser->user->name} was assigned to task \"{$task->name}\" by ".auth()->user()->name,
         ]);
         $task->assigned_at = now();
         $task->saveQuietly();
@@ -29,7 +28,7 @@ class TaskUserObserver
             'project_id' => $task->project_id,
             'user_id' => auth()->id(),
             'title' => 'Assigned user was removed',
-            'subtitle' => "{$taskUser->user->name} was removed from task \"{$task->name}\" by " . auth()->user()->name,
+            'subtitle' => "{$taskUser->user->name} was removed from task \"{$task->name}\" by ".auth()->user()->name,
         ]);
         $task->assigned_at = now();
         $task->saveQuietly();

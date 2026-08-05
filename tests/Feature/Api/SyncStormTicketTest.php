@@ -13,6 +13,7 @@ use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
@@ -70,7 +71,15 @@ beforeEach(function () {
         'billable' => true,
     ], $attributes));
 
-    Http::fake(['localhost:9000/*' => Http::response(['data' => ['id' => 77]])]);
+    // Ticket 77, answering with the files the upload tests send it. Stubs
+    // registered here win over later ones, so this is the single response.
+    Http::fake(['localhost:9000/*' => Http::response(['data' => [
+        'id' => 77,
+        'attachments' => [
+            ['id' => 33, 'name' => 'keep.txt'],
+            ['id' => 34, 'name' => 'antenna.pdf'],
+        ],
+    ]])]);
 });
 
 it('pushes a renamed task onto its ticket', function () {
@@ -128,6 +137,48 @@ it('uploads attachments added after the ticket was filed', function () {
             && $parts['_method'] === 'PATCH'
             && $request->url() === 'http://localhost:9000/api/v1/pmis/tickets/77';
     });
+});
+
+it('records storm ids for uploads, and removes them when the file is deleted', function () {
+    $task = ($this->task)();
+
+    $attachments = (new CreateTask)->uploadAttachments($task, [
+        UploadedFile::fake()->create('keep.txt', 1),
+        UploadedFile::fake()->create('antenna.pdf', 12),
+    ]);
+
+    $antenna = $attachments->firstWhere('name', 'antenna.pdf');
+
+    expect($attachments->firstWhere('name', 'keep.txt')->fresh()->storm_attachment_id)->toBe(33)
+        ->and($antenna->fresh()->storm_attachment_id)->toBe(34);
+
+    // Refreshed first: the id was stamped on the copy the sync job loaded, and
+    // the deletion has to see it to tell STORM which file went.
+    $antenna->refresh()->delete();
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'PATCH'
+        && $request->url() === 'http://localhost:9000/api/v1/pmis/tickets/77'
+        && $request['remove_attachments'] === [34]);
+
+    File::deleteDirectory(storage_path("app/public/tasks/{$task->id}"));
+});
+
+it('says nothing about a file storm never took', function () {
+    $task = ($this->task)();
+
+    $attachment = $task->attachments()->create([
+        'user_id' => $this->user->id,
+        'name' => 'never-sent.txt',
+        'path' => '/storage/tasks/nope.txt',
+        'type' => 'text/plain',
+        'size' => 10,
+    ]);
+
+    Http::fake();
+
+    $attachment->delete();
+
+    Http::assertNothingSent();
 });
 
 it('leaves tasks without a ticket alone', function () {

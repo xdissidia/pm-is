@@ -28,8 +28,8 @@ class StoreTaskGroupRequest extends FormRequest
                 'string',
                 Rule::unique('task_groups', 'name')
                     ->where('project_id', $this->route('project')->id),
-                    // WHAT IS THIS FOR?
-                    // ->ignore(@$this->route('taskGroup')->id)
+                // WHAT IS THIS FOR?
+                // ->ignore(@$this->route('taskGroup')->id)
             ],
             'color' => [
                 'nullable',

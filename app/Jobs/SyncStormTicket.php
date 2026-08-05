@@ -45,16 +45,20 @@ class SyncStormTicket implements ShouldQueue
             return;
         }
 
-        $uploads = empty($this->attachmentIds)
-            ? []
-            : StormTicketService::uploadsFrom(Attachment::whereIn('id', $this->attachmentIds)->get());
+        $attachments = empty($this->attachmentIds)
+            ? collect()
+            : Attachment::whereIn('id', $this->attachmentIds)->get();
+
+        $uploads = $attachments->isEmpty() ? [] : StormTicketService::uploadsFrom($attachments);
 
         if (empty($this->changes) && empty($uploads)) {
             return;
         }
 
         try {
-            $storm->update($this->task->storm_ticket_id, $this->changes, $uploads);
+            $ticket = $storm->update($this->task->storm_ticket_id, $this->changes, $uploads);
+
+            StormTicketService::linkAttachments($attachments, $ticket);
         } catch (StormApiException $e) {
             // Best effort, same as filing: the change is already saved in PMIS
             // and a STORM outage must not fail the request that made it.

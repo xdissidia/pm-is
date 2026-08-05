@@ -84,6 +84,52 @@ it('files a storm ticket for a task created in the storm group', function () {
     });
 });
 
+it('attaches assignees as storm user ids, and records the accounts', function () {
+    $assignee = User::factory()->create(['email' => 'metss@pagasa.ict']);
+    $assignee->assignRole('admin');
+
+    Http::fake([
+        'localhost:9000/api/v1/pmis/users/lookup' => Http::response(['data' => [
+            ['id' => 1, 'name' => 'Admin', 'email' => $this->user->email, 'pmis_user_id' => null],
+            ['id' => 2, 'name' => 'METTSS', 'email' => 'metss@pagasa.ict', 'pmis_user_id' => null],
+            ['id' => 25, 'name' => 'METTSS', 'email' => 'metss@pagasa.ict', 'pmis_user_id' => $assignee->id],
+        ]]),
+        'localhost:9000/api/v1/pmis/tickets' => Http::response(['data' => ['id' => 99]], 201),
+    ]);
+
+    ($this->createTask)($this->stormGroup, ['assignees' => [$assignee->id]])->assertCreated();
+
+    Http::assertSent(function (Request $request) use ($assignee) {
+        return $request->url() === 'http://localhost:9000/api/v1/pmis/tickets'
+            // STORM's own id for the assignee, not the PMIS one.
+            && $request['assignees'] === [25]
+            && $request['pmis_user_id'] === $this->user->id
+            && $request['author_email'] === $this->user->email
+            && $assignee->id !== 25;
+    });
+
+    // The author is looked up in the same call, so their account is recorded too.
+    expect($this->user->fresh()->storm->storm_user_id)->toBe(1)
+        ->and($assignee->fresh()->storm->storm_user_id)->toBe(25);
+});
+
+it('files the ticket unassigned when the user lookup fails', function () {
+    $assignee = User::factory()->create(['email' => 'metss@pagasa.ict']);
+    $assignee->assignRole('admin');
+
+    Http::fake([
+        'localhost:9000/api/v1/pmis/users/lookup' => Http::response(['message' => 'Server Error'], 500),
+        'localhost:9000/api/v1/pmis/tickets' => Http::response(['data' => ['id' => 99]], 201),
+    ]);
+
+    $response = ($this->createTask)($this->stormGroup, ['assignees' => [$assignee->id]])->assertCreated();
+
+    expect(Task::findOrFail($response->json('data.id'))->storm_ticket_id)->toBe(99);
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'http://localhost:9000/api/v1/pmis/tickets'
+        && ! isset($request['assignees']));
+});
+
 it('sends the task attachments up with the ticket', function () {
     Http::fake(['localhost:9000/*' => Http::response(['data' => ['id' => 88]], 201)]);
 

@@ -52,8 +52,8 @@ class CreateTask
 
             $task->labels()->attach($data['labels'] ?? []);
 
-            if (!empty($data['attachments'])) {
-                $this->uploadAttachments($task, $data['attachments'], false);
+            if (! empty($data['attachments'])) {
+                $this->uploadAttachments($task, $data['attachments'], false, $data['attachment_storm_ids'] ?? []);
             }
 
             TaskCreated::dispatch($task);
@@ -62,11 +62,15 @@ class CreateTask
         });
     }
 
-    public function uploadAttachments(Task $task, array $items, $dispatchEvent = true): Collection
+    /**
+     * @param  array<int|string, UploadedFile>  $items
+     * @param  array<int|string, int>  $stormAttachmentIds  STORM's id for an item, under the same key
+     */
+    public function uploadAttachments(Task $task, array $items, $dispatchEvent = true, array $stormAttachmentIds = []): Collection
     {
         $rows = collect($items)
-            ->map(function (UploadedFile $item) use ($task) {
-                $filename = strtolower(Str::ulid()) . '.' . $item->getClientOriginalExtension();
+            ->map(function (UploadedFile $item, $key) use ($task, $stormAttachmentIds) {
+                $filename = strtolower(Str::ulid()).'.'.$item->getClientOriginalExtension();
                 $filepath = "tasks/{$task->id}/{$filename}";
 
                 $item->storeAs('public', $filepath);
@@ -74,6 +78,7 @@ class CreateTask
                 $thumbFilepath = $this->generateThumb($item, $task, $filename);
 
                 return [
+                    'storm_attachment_id' => $stormAttachmentIds[$key] ?? null,
                     'user_id' => auth()->id(),
                     'name' => $item->getClientOriginalName(),
                     'path' => "/storage/$filepath",
@@ -88,8 +93,8 @@ class CreateTask
         $task->activities()->create([
             'project_id' => $task->project_id,
             'user_id' => auth()->id(),
-            'title' => ($attachments->count() > 1 ? 'Attachments where' : 'Attachment was') . ' uploaded',
-            'subtitle' => "to \"{$task->name}\" by " . auth()->user()->name,
+            'title' => ($attachments->count() > 1 ? 'Attachments where' : 'Attachment was').' uploaded',
+            'subtitle' => "to \"{$task->name}\" by ".auth()->user()->name,
         ]);
 
         if ($dispatchEvent) {

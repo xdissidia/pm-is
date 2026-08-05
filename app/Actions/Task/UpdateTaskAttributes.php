@@ -34,11 +34,12 @@ class UpdateTaskAttributes
      * is what open boards and task drawers listen for.
      *
      * @param  array<string, mixed>  $changes
-     * @param  array<int, UploadedFile>  $uploads
+     * @param  array<int|string, UploadedFile>  $uploads
+     * @param  array<int|string, int>  $stormAttachmentIds  STORM's id for an upload, under the same key
      */
-    public function update(Task $task, array $changes, array $uploads = []): Task
+    public function update(Task $task, array $changes, array $uploads = [], array $stormAttachmentIds = []): Task
     {
-        return DB::transaction(function () use ($task, $changes, $uploads) {
+        return DB::transaction(function () use ($task, $changes, $uploads, $stormAttachmentIds) {
             foreach ($this->fields as $input => $field) {
                 if (array_key_exists($input, $changes)) {
                     (new UpdateTask)->update($task, [$field => $changes[$input]]);
@@ -69,7 +70,7 @@ class UpdateTaskAttributes
             }
 
             if (! empty($uploads)) {
-                (new CreateTask)->uploadAttachments($task, $uploads);
+                (new CreateTask)->uploadAttachments($task, $uploads, true, $stormAttachmentIds);
             }
 
             return $task->refresh();

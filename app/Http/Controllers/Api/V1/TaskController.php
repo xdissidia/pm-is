@@ -50,7 +50,9 @@ class TaskController extends Controller
             'billable' => true,
             'assigned_users' => $request->validated('assignees', []),
             'subscribed_users' => $request->validated('subscribers', []),
-            'attachments' => $request->file('uploads', []),
+            'attachments' => $request->uploads(),
+            // STORM keys its upload parts by its own attachment id.
+            'attachment_storm_ids' => $request->uploadStormIds(),
         ]);
 
         return response()->json([
@@ -83,7 +85,7 @@ class TaskController extends Controller
         // Not pushed back to STORM: this request came *from* STORM, so it
         // already has these values (see App\Support\StormSync).
         $task = StormSync::withoutSyncing(
-            fn () => (new UpdateTaskAttributes)->update($task, $changes, $request->file('uploads', [])),
+            fn () => (new UpdateTaskAttributes)->update($task, $changes, $request->uploads(), $request->uploadStormIds()),
         );
 
         return $this->respondWithTask($task);

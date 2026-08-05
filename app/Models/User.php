@@ -7,6 +7,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -120,5 +121,14 @@ class User extends Authenticatable implements AuditableContract, CanResetPasswor
     public function tasks()
     {
         return $this->belongsToMany(Task::class)->using(TaskUser::class)->withTimestamps();
+    }
+
+    /**
+     * The STORM account this user is known by. STORM can hold more than one
+     * account on the same address; this is the one PMIS files against.
+     */
+    public function storm(): HasOne
+    {
+        return $this->hasOne(UserStorm::class);
     }
 }

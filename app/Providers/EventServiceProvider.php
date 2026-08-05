@@ -10,10 +10,12 @@ use App\Listeners\FileStormTicket;
 use App\Listeners\ForwardAttachmentsToStorm;
 use App\Listeners\NotifyTaskSubscribers;
 use App\Listeners\SendEmailWithCredentials;
+use App\Models\Attachment;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskUser;
+use App\Observers\AttachmentObserver;
 use App\Observers\CommentObserver;
 use App\Observers\ProjectObserver;
 use App\Observers\TaskObserver;
@@ -50,6 +52,7 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $observers = [
+        Attachment::class => [AttachmentObserver::class],
         Project::class => [ProjectObserver::class],
         Task::class => [TaskObserver::class],
         TaskUser::class => [TaskUserObserver::class],

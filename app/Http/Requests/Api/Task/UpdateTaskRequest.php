@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Task;
 
 use App\Enums\StormTicketStatus;
+use App\Http\Requests\Api\Concerns\ReadsStormUploads;
 use App\Http\Requests\Api\Concerns\ValidatesTaskInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
-    use ValidatesTaskInput;
+    use ReadsStormUploads, ValidatesTaskInput;
 
     /**
      * Fields this endpoint understands. Anything absent is left untouched.

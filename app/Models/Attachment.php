@@ -10,12 +10,17 @@ class Attachment extends Model
 {
     protected $fillable = [
         'task_id',
+        'storm_attachment_id',
         'user_id',
         'name',
         'path',
         'thumb',
         'type',
         'size',
+    ];
+
+    protected $casts = [
+        'storm_attachment_id' => 'integer',
     ];
 
     /**

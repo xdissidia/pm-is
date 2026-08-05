@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Api\Task;
 
+use App\Http\Requests\Api\Concerns\ReadsStormUploads;
 use App\Http\Requests\Api\Concerns\ValidatesTaskInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTaskRequest extends FormRequest
 {
-    use ValidatesTaskInput;
+    use ReadsStormUploads, ValidatesTaskInput;
 
     /**
      * Determine if the user is authorized to make this request.

@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class TaskUser extends Pivot
 {
-
     protected $table = 'task_user';
 
     public function task()
@@ -20,5 +17,4 @@ class TaskUser extends Pivot
     {
         return $this->belongsTo(User::class);
     }
-
 }

@@ -5,17 +5,14 @@ namespace App\Services\Storm;
 use App\Enums\StormTicketStatus;
 use App\Models\Attachment;
 use App\Models\Task;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Files tickets into STORM (POST /api/v1/pmis/tickets) and updates them
  * afterwards. This is the outbound half of the integration — the inbound half,
  * STORM creating and updating PMIS tasks, is Api\V1\TaskController.
  */
-class StormTicketService
+class StormTicketService extends StormClient
 {
     /**
      * The fields STORM's ticket request accepts. Anything else in the payload
@@ -35,6 +32,8 @@ class StormTicketService
         'status',
         'work_status',
         'assignees',
+        // Update only: STORM attachment ids to drop off the ticket.
+        'remove_attachments',
     ];
 
     /**
@@ -43,19 +42,6 @@ class StormTicketService
     public const MAX_UPLOADS = 20;
 
     public const MAX_UPLOAD_BYTES = 25600 * 1024;
-
-    protected string $baseUrl;
-
-    protected ?string $token;
-
-    protected int $timeout;
-
-    public function __construct(?string $baseUrl = null, ?string $token = null, ?int $timeout = null)
-    {
-        $this->baseUrl = rtrim($baseUrl ?? (string) config('services.storm.url'), '/');
-        $this->token = $token ?? config('services.storm.token');
-        $this->timeout = $timeout ?? (int) config('services.storm.timeout', 20);
-    }
 
     /**
      * File a new ticket. Returns the ticket STORM created.
@@ -76,7 +62,7 @@ class StormTicketService
             }
         }
 
-        return $this->send('post', $this->endpoint(), $payload, $uploads);
+        return $this->ticket($this->send('post', $this->endpoint(), $payload, $uploads));
     }
 
     /**
@@ -99,10 +85,10 @@ class StormTicketService
         // PHP cannot parse a multipart body on a real PATCH, so anything with
         // files goes out as POST + _method=PATCH, which STORM's route allows.
         if (! empty($uploads)) {
-            return $this->send('post', $this->endpoint($ticketId), $payload + ['_method' => 'PATCH'], $uploads);
+            return $this->ticket($this->send('post', $this->endpoint($ticketId), $payload + ['_method' => 'PATCH'], $uploads));
         }
 
-        return $this->send('patch', $this->endpoint($ticketId), $payload);
+        return $this->ticket($this->send('patch', $this->endpoint($ticketId), $payload));
     }
 
     /**
@@ -131,6 +117,43 @@ class StormTicketService
     }
 
     /**
+     * Record STORM's ids for files it just took, matching the `attachments` it
+     * answers with back to the PMIS rows by name. Only rows that do not have an
+     * id yet are stamped, so re-uploading later cannot re-point an older file.
+     *
+     * @param  iterable<Attachment>  $sent
+     * @param  array<string, mixed>  $ticket
+     */
+    public static function linkAttachments(iterable $sent, array $ticket): void
+    {
+        $unlinked = collect($sent)->filter(fn (Attachment $attachment) => blank($attachment->storm_attachment_id));
+
+        if ($unlinked->isEmpty()) {
+            return;
+        }
+
+        $taken = $unlinked->pluck('storm_attachment_id')->filter()->all();
+
+        foreach ($ticket['attachments'] ?? [] as $theirs) {
+            if (! is_array($theirs) || blank($theirs['id'] ?? null)) {
+                continue;
+            }
+
+            $match = $unlinked->first(fn (Attachment $attachment) => blank($attachment->storm_attachment_id)
+                && $attachment->name === ($theirs['name'] ?? null)
+                && ! in_array($theirs['id'], $taken, true));
+
+            if (! $match) {
+                continue;
+            }
+
+            $taken[] = $theirs['id'];
+            $match->storm_attachment_id = (int) $theirs['id'];
+            $match->save();
+        }
+    }
+
+    /**
      * Turn task attachments into upload entries, dropping what STORM would
      * reject anyway: files that are gone, oversized, or past the 20-file cap.
      *
@@ -151,60 +174,20 @@ class StormTicketService
             ->all();
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @param  array<int, UploadedFile|string|array{path: string, name?: string}>  $uploads
-     * @return array<string, mixed>
-     *
-     * @throws StormApiException
-     */
-    protected function send(string $method, string $url, array $payload, array $uploads = []): array
-    {
-        $request = $this->request();
-
-        // Files force multipart, where every value has to be a scalar part.
-        if (! empty($uploads)) {
-            foreach ($uploads as $upload) {
-                $request = $this->attach($request, $upload);
-            }
-
-            $payload = $this->flatten($payload);
-        }
-
-        try {
-            $response = $request->{$method}($url, $payload);
-        } catch (ConnectionException $e) {
-            throw StormApiException::unreachable($url, $e);
-        }
-
-        if ($response->failed()) {
-            throw StormApiException::fromResponse($response);
-        }
-
-        return $response->json('data') ?? $response->json() ?? [];
-    }
-
-    /**
-     * @throws StormApiException
-     */
-    protected function request(): PendingRequest
-    {
-        if (blank($this->token)) {
-            throw new StormApiException('No STORM API token configured — set STORM_API_TOKEN.');
-        }
-
-        return Http::withToken($this->token)
-            ->acceptJson()
-            ->timeout($this->timeout)
-            ->when(
-                ! config('services.storm.verify', true),
-                fn (PendingRequest $request) => $request->withoutVerifying(),
-            );
-    }
-
     protected function endpoint(int|string|null $ticketId = null): string
     {
-        return $this->baseUrl.'/api/v1/pmis/tickets'.($ticketId !== null ? "/{$ticketId}" : '');
+        return $this->url('tickets'.($ticketId !== null ? "/{$ticketId}" : ''));
+    }
+
+    /**
+     * STORM wraps the ticket it answers with in `data`.
+     *
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    protected function ticket(array $body): array
+    {
+        return $body['data'] ?? $body;
     }
 
     /**
@@ -222,61 +205,5 @@ class StormTicketService
         }
 
         return $payload;
-    }
-
-    /**
-     * @throws StormApiException
-     */
-    protected function attach(PendingRequest $request, mixed $upload): PendingRequest
-    {
-        // Attached as streams, not strings: it keeps a 25MB upload out of
-        // memory, and an empty file would otherwise be dropped by the
-        // array_filter() inside PendingRequest::attach().
-        if ($upload instanceof UploadedFile) {
-            return $request->attach('uploads[]', fopen($upload->getPathname(), 'r'), $upload->getClientOriginalName());
-        }
-
-        // ['path' => ..., 'name' => ...] — a stored file that keeps the name it
-        // was uploaded under rather than the ULID it is stored as.
-        if (is_array($upload) && is_file($upload['path'] ?? '')) {
-            return $request->attach(
-                'uploads[]',
-                fopen($upload['path'], 'r'),
-                $upload['name'] ?? basename($upload['path']),
-            );
-        }
-
-        if (is_string($upload) && is_file($upload)) {
-            return $request->attach('uploads[]', fopen($upload, 'r'), basename($upload));
-        }
-
-        throw new StormApiException('Uploads have to be UploadedFile instances or readable file paths.');
-    }
-
-    /**
-     * Multipart parts are name/value pairs of strings, so nested arrays become
-     * `assignees[0]` and booleans become 1/0. Nulls are dropped — STORM treats
-     * every one of these fields as nullable anyway.
-     *
-     * @param  array<string, mixed>  $payload
-     * @return array<string, string>
-     */
-    protected function flatten(array $payload, string $prefix = ''): array
-    {
-        $flat = [];
-
-        foreach ($payload as $key => $value) {
-            $name = $prefix === '' ? (string) $key : "{$prefix}[{$key}]";
-
-            if (is_array($value)) {
-                $flat = array_merge($flat, $this->flatten($value, $name));
-            } elseif (is_bool($value)) {
-                $flat[$name] = $value ? '1' : '0';
-            } elseif ($value !== null) {
-                $flat[$name] = (string) $value;
-            }
-        }
-
-        return $flat;
     }
 }
