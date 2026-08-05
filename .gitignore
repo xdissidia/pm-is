@@ -19,3 +19,4 @@ yarn-error.log
 /.vscode
 /storage/clockwork
 .pnpm-lock.yaml
+/docs/postman/*.postman_environment.json

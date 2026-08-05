@@ -1,0 +1,615 @@
+{
+  "info": {
+    "_postman_id": "b7f1c2a4-9d3e-4a51-8c6f-1e0f2a5b7c31",
+    "name": "PAGASA PMIS API (v1)",
+    "description": "REST API for PAGASA PMIS.\n\n**Setup**\n1. Import this collection *and* the matching environment file (`PAGASA-PMIS-Local.postman_environment.json`), then select the environment in the top-right picker.\n2. Run **Auth › Who am I** to confirm the token works.\n\n**Auth** — Sanctum personal access token, sent as `Authorization: Bearer {{token}}` (set once at collection level, inherited by every request).\n\nMint a token with:\n```\nphp artisan tinker --execute=\"echo \\App\\Models\\User::find(1)->createToken('postman-local')->plainTextToken;\"\n```\n\nAll error responses are JSON; validation failures return `422` with an `errors` object.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get('token') && !pm.collectionVariables.get('token')) {",
+          "  console.warn('No {{token}} set — import PAGASA-PMIS-Local.postman_environment.json or paste a token into the environment.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "project_id", "value": "3", "type": "string" },
+    { "key": "task_group_id", "value": "13", "type": "string" },
+    { "key": "target_group_id", "value": "15", "type": "string" },
+    { "key": "assignee_id", "value": "16", "type": "string" },
+    { "key": "subscriber_id", "value": "15", "type": "string" },
+    { "key": "lookup_email", "value": "admin@mail.com", "type": "string" },
+    { "key": "resolved_user_id", "value": "", "type": "string" },
+    { "key": "last_task_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Who am I",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK — token is valid', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the authenticated user', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "});",
+                  "console.log('Authenticated as:', pm.response.json().name, '<' + pm.response.json().email + '>');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/user",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user"]
+            },
+            "description": "Sanity check — confirms the bearer token authenticates. Returns the token owner."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Look up user ids by email (bulk)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('every requested address is accounted for', () => {",
+                  "  pm.expect(body.meta.found + body.meta.not_found.length).to.eql(body.meta.requested);",
+                  "});",
+                  "",
+                  "if (body.meta.not_found.length) {",
+                  "  console.warn('No user for:', body.meta.not_found.join(', '));",
+                  "}",
+                  "",
+                  "// Handy when chaining into the task requests, which take user ids.",
+                  "if (body.data.length) {",
+                  "  pm.collectionVariables.set('resolved_user_id', body.data[0].id);",
+                  "  console.log('First match:', body.data[0].email, '->', body.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emails\": [\n    \"{{lookup_email}}\",\n    \"nobody@pagasa.test\"\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/lookup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "lookup"]
+            },
+            "description": "Resolve a batch of email addresses to user ids — useful for turning a list of addresses into the ids the task endpoints expect for `assignees` and `subscribers`.\n\n| Field | Rules |\n| --- | --- |\n| `emails[]` | **required**, 1–200 valid addresses |\n\n**POST, not GET, on purpose:** email addresses are personal data and should not end up in a URL, server log, or browser history, and a long batch would overflow a query string.\n\nMatching is case-insensitive and ignores surrounding whitespace. Duplicates are collapsed, so `meta.requested` may be lower than the number you sent.\n\n**Archived users never resolve** — they come back under `meta.not_found`, same as an address with no account at all.\n\nResponse:\n```json\n{\n  \"data\": [\n    { \"id\": 16, \"email\": \"john@pagasa.test\", \"name\": \"John Almario\" }\n  ],\n  \"meta\": {\n    \"requested\": 2,\n    \"found\": 1,\n    \"not_found\": [\"nobody@pagasa.test\"]\n  }\n}\n```\n\n`data` is sorted by name. Requires the *view users* permission; anything less gets `403`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create task (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "",
+                  "pm.test('lands in the requested project and group', () => {",
+                  "  pm.expect(String(task.project.id)).to.eql(pm.collectionVariables.replaceIn('{{project_id}}'));",
+                  "  pm.expect(String(task.group.id)).to.eql(pm.collectionVariables.replaceIn('{{task_group_id}}'));",
+                  "});",
+                  "",
+                  "pm.test('assignees and subscribers were attached', () => {",
+                  "  pm.expect(task.assignees).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(task.subscribers).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('last_task_id', task.id);",
+                  "console.log('Created task #' + task.number + ' (id ' + task.id + '): ' + task.title);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Calibrate rain gauge at Station 4\",\n  \"body\": \"<p>Sensor drifted ~3mm over the last cycle. Recalibrate and log the before/after readings.</p>\",\n  \"assignees\": [{{assignee_id}}],\n  \"subscribers\": [{{subscriber_id}}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            },
+            "description": "Create a task without attachments.\n\n| Field | Rules |\n| --- | --- |\n| `title` | **required**, string, max 255 |\n| `body` | optional, string (Tiptap HTML) |\n| `assignees[]` | optional, user ids — must have access to the project |\n| `subscribers[]` | optional, user ids — must have access to the project |\n\nDefaults applied server-side: `billable = true`, `hidden_from_clients = false`, no priority / due date / estimation.\n\nFires the same observers, audit log, activity feed, queued notifications and Pusher broadcasts as creating a task in the web UI."
+          },
+          "response": []
+        },
+        {
+          "name": "Create task (with uploads)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "",
+                  "pm.test('attachments were stored', () => {",
+                  "  pm.expect(task.attachments).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(task.attachments[0]).to.have.property('path');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('last_task_id', task.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Radar QC report — March cycle", "type": "text" },
+                { "key": "body", "value": "<p>Attached: raw QC export and the signed checklist.</p>", "type": "text" },
+                { "key": "assignees[]", "value": "{{assignee_id}}", "type": "text" },
+                { "key": "subscribers[]", "value": "{{subscriber_id}}", "type": "text" },
+                {
+                  "key": "uploads[]",
+                  "type": "file",
+                  "src": [],
+                  "description": "Pick one or more files here. Max 20 files, 25 MB each. Images also get a 100x100 thumbnail generated."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            },
+            "description": "Same endpoint, sent as `multipart/form-data` so files can ride along.\n\n**Before sending:** click the `uploads[]` row in the Body tab and choose real files — Postman cannot store file paths in an exported collection, so the row starts empty.\n\nRepeat the `uploads[]`, `assignees[]` and `subscribers[]` rows to send more than one value each.\n\nDo **not** set `Content-Type` by hand; Postman adds the multipart boundary itself."
+          },
+          "response": []
+        },
+        {
+          "name": "Update task (partial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "",
+                  "pm.test('the sent fields changed', () => {",
+                  "  pm.expect(task.title).to.eql('Recalibrate rain gauge — revised');",
+                  "});",
+                  "",
+                  "console.log('Task ' + task.id + ' updated');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Recalibrate rain gauge — revised\",\n  \"body\": \"<p>Scope widened to cover Station 5 as well.</p>\",\n  \"assignees\": [{{assignee_id}}],\n  \"subscribers\": [{{subscriber_id}}],\n  \"task_group_id\": {{target_group_id}},\n  \"completed\": false,\n  \"due_on\": \"2026-09-01\",\n  \"estimation\": 4.5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+            },
+            "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\nPermissions are enforced per field: `task_group_id` also requires *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
+          },
+          "response": []
+        },
+        {
+          "name": "Update task (with uploads)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('attachment count grew', () => {",
+                  "  pm.expect(pm.response.json().data.attachments).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "_method",
+                  "value": "PATCH",
+                  "type": "text",
+                  "description": "Laravel method spoofing — PHP cannot parse multipart bodies on a real PATCH request."
+                },
+                { "key": "title", "value": "Revised with new evidence", "type": "text" },
+                { "key": "body", "value": "<p>Findings attached.</p>", "type": "text" },
+                { "key": "assignees[]", "value": "{{assignee_id}}", "type": "text" },
+                { "key": "subscribers[]", "value": "{{subscriber_id}}", "type": "text" },
+                { "key": "task_group_id", "value": "{{target_group_id}}", "type": "text" },
+                { "key": "completed", "value": "1", "type": "text", "description": "Form fields are strings — use 1/0 for booleans here, not true/false." },
+                {
+                  "key": "uploads[]",
+                  "type": "file",
+                  "src": [],
+                  "description": "Pick one or more files. These are added to the task's existing attachments."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+            },
+            "description": "Same update endpoint, as `multipart/form-data` so files can ride along.\n\nNote the `_method=PATCH` field: PHP does not populate `$_FILES` for a genuine PATCH request, so the request is sent as `POST` and Laravel rewrites the method. This is the standard Laravel workaround, not a quirk of this API.\n\nUploads are **appended** to whatever the task already has — there is no replace. Use the existing attachment delete route to remove one.\n\n**Before sending:** click the `uploads[]` row and choose real files; Postman cannot store file paths in an exported collection."
+          },
+          "response": []
+        },
+        {
+          "name": "Move task to task group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "",
+                  "pm.test('sits in the requested group', () => {",
+                  "  pm.expect(String(task.group.id)).to.eql(pm.collectionVariables.replaceIn('{{target_group_id}}'));",
+                  "});",
+                  "",
+                  "console.log('Task ' + task.id + ' moved to \"' + task.group.name + '\"');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_group_id\": {{target_group_id}},\n  \"position\": 0\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/group",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "group"]
+            },
+            "description": "Move a task into another task group.\n\n| Field | Rules |\n| --- | --- |\n| `task_group_id` | **required**, must be a live (non-archived) group **in the same project** |\n| `position` | optional, 0-based slot in the target group. Omit to append to the end; values past the end are clamped. |\n\nPassing the group the task is already in reorders it inside that group.\n\nOrdering is recalculated server-side — unlike the drag-and-drop endpoint the web UI uses, you do not send the full ordered id list. Open boards update live: a cross-group move broadcasts `TaskGroupChanged`, a same-group move broadcasts `TaskOrderChanged`.\n\nUses `{{last_task_id}}`, which the two create requests set automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark task done",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('completed_at is set', () => {",
+                  "  pm.expect(pm.response.json().data.completed_at).to.not.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "complete"]
+            },
+            "description": "Mark a task done.\n\n`completed` is optional and defaults to `true`, so an empty body marks the task done. Send `{\"completed\": false}` to reopen it.\n\nWrites an entry to the project activity feed and broadcasts `TaskUpdated` for `completed_at`."
+          },
+          "response": []
+        },
+        {
+          "name": "Reopen task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('completed_at is cleared', () => {",
+                  "  pm.expect(pm.response.json().data.completed_at).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "complete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Negative cases",
+      "description": "Requests that should fail — useful for confirming error shapes are JSON rather than HTML redirects.",
+      "item": [
+        {
+          "name": "Update with empty body → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "pm.test('explains that a field is needed', () => {",
+                  "  pm.expect(pm.response.json().errors).to.have.property('title');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+            },
+            "description": "A no-op update is treated as a mistake rather than silently accepted."
+          },
+          "response": []
+        },
+        {
+          "name": "Missing title → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "pm.test('names the offending field', () => {",
+                  "  pm.expect(pm.response.json().errors).to.have.property('title');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"A body with no title\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assignee without project access → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "pm.test('rejects the assignee by index', () => {",
+                  "  pm.expect(pm.response.json().errors).to.have.property('assignees.0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should be rejected\",\n  \"assignees\": [{{no_access_user_id}}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            },
+            "description": "Assignees and subscribers must appear in the project's access list, otherwise you would notify people who cannot open the task. Set `no_access_user_id` in the environment to a user without access to `{{project_id}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Task group from another project → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should be rejected\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{other_project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{other_project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            },
+            "description": "The task group must belong to the project in the path."
+          },
+          "response": []
+        },
+        {
+          "name": "No token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthenticated', () => pm.response.to.have.status(401));",
+                  "pm.test('answers with JSON, not an HTML login redirect', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('json');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should be rejected\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

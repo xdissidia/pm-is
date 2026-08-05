@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +18,23 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function () {
+    Route::post('users/lookup', [UserController::class, 'lookup'])
+        ->name('users.lookup');
+
+    // Create and update take no {project}: it is inferred from the task group
+    // or the task itself.
+    Route::post('task-groups/{taskGroup}/tasks', [TaskController::class, 'store'])
+        ->name('tasks.store');
+
+    Route::patch('tasks/{task}', [TaskController::class, 'update'])
+        ->name('tasks.update');
+
+    Route::put('projects/{project}/tasks/{task}/group', [TaskController::class, 'move'])
+        ->name('tasks.move');
+
+    Route::put('projects/{project}/tasks/{task}/complete', [TaskController::class, 'complete'])
+        ->name('tasks.complete');
 });

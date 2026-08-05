@@ -39,6 +39,12 @@ class Handler extends ExceptionHandler
         /** @var \Symfony\Component\HttpFoundation\Response */
         $response = parent::render($request, $e);
 
+        // API routes keep Laravel's standard JSON error payloads (message +
+        // `errors` for validation) instead of the flattened shape below.
+        if ($request->is('api/*')) {
+            return $response;
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => $e->getMessage(),
