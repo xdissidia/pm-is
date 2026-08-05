@@ -46,7 +46,7 @@ beforeEach(function () {
         'color' => 'blue',
     ]);
 
-    $this->url = "/api/v1/projects/{$this->project->id}/task-groups/{$this->taskGroup->id}/tasks";
+    $this->url = "/api/v1/task-groups/{$this->taskGroup->id}/tasks";
 });
 
 it('creates a task with title, body, subscribers, assignees and uploads', function () {
@@ -99,19 +99,6 @@ it('rejects users without access to the project', function () {
         ->post($this->url, ['title' => 'Nope', 'assignees' => [$outsider->id]])
         ->assertStatus(422)
         ->assertJsonValidationErrors('assignees.0');
-});
-
-it('rejects a task group belonging to another project', function () {
-    $otherProject = Project::create([
-        'client_company_id' => ClientCompany::factory()->create()->id,
-        'name' => 'Other Project',
-        'hourly_rate' => 5000,
-        'default_pricing_type' => 'hourly',
-    ]);
-
-    $this->actingAs($this->user, 'sanctum')
-        ->post("/api/v1/projects/{$otherProject->id}/task-groups/{$this->taskGroup->id}/tasks", ['title' => 'Nope'])
-        ->assertNotFound();
 });
 
 it('requires authentication', function () {

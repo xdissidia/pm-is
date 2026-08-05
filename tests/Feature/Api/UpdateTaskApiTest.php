@@ -54,7 +54,7 @@ beforeEach(function () {
         'billable' => true,
     ]);
 
-    $this->url = "/api/v1/projects/{$this->project->id}/tasks/{$this->task->id}";
+    $this->url = "/api/v1/tasks/{$this->task->id}";
 });
 
 it('updates title and body', function () {
@@ -297,19 +297,6 @@ it('rejects an unknown priority', function () {
         ->patchJson($this->url, ['priority_id' => 99999])
         ->assertStatus(422)
         ->assertJsonValidationErrors('priority_id');
-});
-
-it('rejects a task that belongs to another project', function () {
-    $otherProject = Project::create([
-        'client_company_id' => ClientCompany::factory()->create()->id,
-        'name' => 'Other Project',
-        'hourly_rate' => 5000,
-        'default_pricing_type' => 'hourly',
-    ]);
-
-    $this->actingAs($this->user, 'sanctum')
-        ->patchJson("/api/v1/projects/{$otherProject->id}/tasks/{$this->task->id}", ['title' => 'Nope'])
-        ->assertNotFound();
 });
 
 it('requires authentication', function () {

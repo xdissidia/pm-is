@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b7f1c2a4-9d3e-4a51-8c6f-1e0f2a5b7c31",
     "name": "PAGASA PMIS API (v1)",
-    "description": "REST API for PAGASA PMIS.\n\n**Setup**\n1. Import this collection *and* the matching environment file (`PAGASA-PMIS-Local.postman_environment.json`), then select the environment in the top-right picker.\n2. Run **Auth › Who am I** to confirm the token works.\n\n**Auth** — Sanctum personal access token, sent as `Authorization: Bearer {{token}}` (set once at collection level, inherited by every request).\n\nMint a token with:\n```\nphp artisan tinker --execute=\"echo \\App\\Models\\User::find(1)->createToken('postman-local')->plainTextToken;\"\n```\n\nAll error responses are JSON; validation failures return `422` with an `errors` object.",
+    "description": "REST API for PAGASA PMIS.\n\n**Setup**\n1. Import this collection *and* the matching environment file (`PAGASA-PMIS-Local.postman_environment.json`), then select the environment in the top-right picker.\n2. Run **Auth › Who am I** to confirm the token works.\n\n**Auth** — Sanctum personal access token, sent as `Authorization: Bearer {{token}}` (set once at collection level, inherited by every request).\n\nMint a token with:\n```\nphp artisan tinker --execute=\"echo \\App\\Models\\User::find(1)->createToken('postman-local')->plainTextToken;\"\n```\n\nAll error responses are JSON; validation failures return `422` with an `errors` object.\n\n**Paths** — create and update are addressed by task group / task alone (`/api/v1/task-groups/{id}/tasks`, `/api/v1/tasks/{id}`); the project is inferred from them. Move and complete are still project-scoped.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -138,10 +138,12 @@
                   "",
                   "const task = pm.response.json().data;",
                   "",
-                  "pm.test('lands in the requested project and group', () => {",
-                  "  pm.expect(String(task.project.id)).to.eql(pm.collectionVariables.replaceIn('{{project_id}}'));",
+                  "pm.test('lands in the requested group', () => {",
                   "  pm.expect(String(task.group.id)).to.eql(pm.collectionVariables.replaceIn('{{task_group_id}}'));",
                   "});",
+                  "",
+                  "// The project is inferred from the group, not sent by the caller.",
+                  "pm.collectionVariables.set('project_id', task.project.id);",
                   "",
                   "pm.test('assignees and subscribers were attached', () => {",
                   "  pm.expect(task.assignees).to.be.an('array').that.is.not.empty;",
@@ -166,11 +168,11 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
             },
-            "description": "Create a task without attachments.\n\n| Field | Rules |\n| --- | --- |\n| `title` | **required**, string, max 255 |\n| `body` | optional, string (Tiptap HTML) |\n| `assignees[]` | optional, user ids — must have access to the project |\n| `subscribers[]` | optional, user ids — must have access to the project |\n\nDefaults applied server-side: `billable = true`, `hidden_from_clients = false`, no priority / due date / estimation.\n\nFires the same observers, audit log, activity feed, queued notifications and Pusher broadcasts as creating a task in the web UI."
+            "description": "Create a task in `{{task_group_id}}`. The project is taken from the task group, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | **required**, string, max 255 |\n| `body` | optional, string (Tiptap HTML) |\n| `assignees[]` | optional, user ids — must have access to the project |\n| `subscribers[]` | optional, user ids — must have access to the project |\n\nDefaults applied server-side: `billable = true`, `hidden_from_clients = false`, no priority / due date / estimation.\n\nFires the same observers, audit log, activity feed, queued notifications and Pusher broadcasts as creating a task in the web UI."
           },
           "response": []
         },
@@ -215,11 +217,11 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
             },
-            "description": "Same endpoint, sent as `multipart/form-data` so files can ride along.\n\n**Before sending:** click the `uploads[]` row in the Body tab and choose real files — Postman cannot store file paths in an exported collection, so the row starts empty.\n\nRepeat the `uploads[]`, `assignees[]` and `subscribers[]` rows to send more than one value each.\n\nDo **not** set `Content-Type` by hand; Postman adds the multipart boundary itself."
+            "description": "Same endpoint (`POST /api/v1/task-groups/{id}/tasks`), sent as `multipart/form-data` so files can ride along.\n\n**Before sending:** click the `uploads[]` row in the Body tab and choose real files — Postman cannot store file paths in an exported collection, so the row starts empty.\n\nRepeat the `uploads[]`, `assignees[]` and `subscribers[]` rows to send more than one value each.\n\nDo **not** set `Content-Type` by hand; Postman adds the multipart boundary itself."
           },
           "response": []
         },
@@ -256,11 +258,11 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
             },
-            "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\nPermissions are enforced per field: `task_group_id` also requires *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
+            "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\nAddressed by task id alone; the project is taken from the task, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\nPermissions are enforced per field: `task_group_id` also requires *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
           },
           "response": []
         },
@@ -307,9 +309,9 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
             },
             "description": "Same update endpoint, as `multipart/form-data` so files can ride along.\n\nNote the `_method=PATCH` field: PHP does not populate `$_FILES` for a genuine PATCH request, so the request is sent as `POST` and Laravel rewrites the method. This is the standard Laravel workaround, not a quirk of this API.\n\nUploads are **appended** to whatever the task already has — there is no replace. Use the existing attachment delete route to remove one.\n\n**Before sending:** click the `uploads[]` row and choose real files; Postman cannot store file paths in an exported collection."
           },
@@ -461,9 +463,9 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}",
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}"]
+              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
             },
             "description": "A no-op update is treated as a mistake rather than silently accepted."
           },
@@ -497,9 +499,9 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
             }
           },
           "response": []
@@ -532,44 +534,11 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
             },
             "description": "Assignees and subscribers must appear in the project's access list, otherwise you would notify people who cannot open the task. Set `no_access_user_id` in the environment to a user without access to `{{project_id}}`."
-          },
-          "response": []
-        },
-        {
-          "name": "Task group from another project → 404",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Should be rejected\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{other_project_id}}/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{other_project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
-            },
-            "description": "The task group must belong to the project in the path."
           },
           "response": []
         },
@@ -602,9 +571,9 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/projects/{{project_id}}/task-groups/{{task_group_id}}/tasks",
+              "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "task-groups", "{{task_group_id}}", "tasks"]
+              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
             }
           },
           "response": []
