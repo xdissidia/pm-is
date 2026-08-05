@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\StormTicketStatus;
 use App\Models\Project;
 use App\Models\TaskGroup;
 use Illuminate\Database\Seeder;
@@ -12,7 +13,7 @@ class StormTaskGroupSeeder extends Seeder
     /**
      * Name of the task group this seeder puts at the top of each board.
      */
-    public const GROUP_NAME = 'STORM';
+    public const GROUP_NAME = StormTicketStatus::LIVE_GROUP;
 
     /**
      * Projects to touch. Matched on the name with punctuation and spacing

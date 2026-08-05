@@ -12,12 +12,44 @@ enum StormTicketStatus: string
     case CLOSED = 'Closed';
 
     /**
+     * The board column live tickets sit in — where STORM's tickets land, and
+     * the one PMIS files new tickets from.
+     */
+    public const LIVE_GROUP = 'STORM';
+
+    public const DONE_GROUP = 'Done';
+
+    /**
      * The task group a ticket in this state belongs in: closed tickets land in
      * "Done", everything still live sits in the "STORM" group.
      */
     public function taskGroupName(): string
     {
-        return $this === self::CLOSED ? 'Done' : 'STORM';
+        return $this === self::CLOSED ? self::DONE_GROUP : self::LIVE_GROUP;
+    }
+
+    /**
+     * The inverse of taskGroupName(): the state a task sitting in this group
+     * represents. Only "Done" is closed; every other column is still live.
+     *
+     * Open rather than On-going, because PMIS has no column for the middle
+     * state — a ticket STORM had On-going only moves back to Open here when
+     * something actually reopens it.
+     */
+    public static function forTaskGroup(?string $groupName): self
+    {
+        return $groupName !== null && Str::lower($groupName) === Str::lower(self::DONE_GROUP)
+            ? self::CLOSED
+            : self::OPEN;
+    }
+
+    /**
+     * Is this the group tickets are filed from? Matched case-insensitively,
+     * the same way taskGroupIn() looks the group up.
+     */
+    public static function isLiveGroup(?string $groupName): bool
+    {
+        return $groupName !== null && Str::lower($groupName) === Str::lower(self::LIVE_GROUP);
     }
 
     /**

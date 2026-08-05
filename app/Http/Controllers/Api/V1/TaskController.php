@@ -15,6 +15,7 @@ use App\Http\Resources\Task\TaskResource;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskGroup;
+use App\Support\StormSync;
 use Illuminate\Http\JsonResponse;
 
 class TaskController extends Controller
@@ -37,6 +38,7 @@ class TaskController extends Controller
 
         $task = (new CreateTask)->create($project, [
             'group_id' => $taskGroup->id,
+            'storm_ticket_id' => $request->validated('storm_ticket_id'),
             'name' => $request->validated('title'),
             'description' => $request->validated('body'),
             'due_on' => null,
@@ -78,7 +80,11 @@ class TaskController extends Controller
             $this->authorize('complete', [Task::class, $project]);
         }
 
-        $task = (new UpdateTaskAttributes)->update($task, $changes, $request->file('uploads', []));
+        // Not pushed back to STORM: this request came *from* STORM, so it
+        // already has these values (see App\Support\StormSync).
+        $task = StormSync::withoutSyncing(
+            fn () => (new UpdateTaskAttributes)->update($task, $changes, $request->file('uploads', [])),
+        );
 
         return $this->respondWithTask($task);
     }
@@ -94,7 +100,9 @@ class TaskController extends Controller
 
         $group = TaskGroup::findOrFail($request->validated('task_group_id'));
 
-        $task = (new MoveTaskToGroup)->move($task, $group, $request->validated('position'));
+        $task = StormSync::withoutSyncing(
+            fn () => (new MoveTaskToGroup)->move($task, $group, $request->validated('position')),
+        );
 
         return $this->respondWithTask($task);
     }
@@ -108,9 +116,11 @@ class TaskController extends Controller
 
         $this->ensureTaskBelongsToProject($project, $task);
 
-        $task->update(['completed_at' => $request->shouldComplete() ? now() : null]);
+        StormSync::withoutSyncing(function () use ($request, $task) {
+            $task->update(['completed_at' => $request->shouldComplete() ? now() : null]);
 
-        TaskUpdated::dispatch($task, 'completed_at');
+            TaskUpdated::dispatch($task, 'completed_at');
+        });
 
         return $this->respondWithTask($task);
     }

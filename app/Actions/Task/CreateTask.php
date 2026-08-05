@@ -29,6 +29,9 @@ class CreateTask
             $task = $project->tasks()->create([
                 'group_id' => $data['group_id'],
                 'created_by_user_id' => auth()->id(),
+                // Set when STORM files the task — it is what stops the ticket
+                // from being filed straight back to STORM (see FileStormTicket).
+                'storm_ticket_id' => $data['storm_ticket_id'] ?? null,
                 // 'assigned_users' => $data['assigned_users'],
                 'name' => $data['name'],
                 'number' => $project->tasks()->withArchived()->count() + 1,

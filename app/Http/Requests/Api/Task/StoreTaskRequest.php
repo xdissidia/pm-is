@@ -28,6 +28,9 @@ class StoreTaskRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
+            // STORM stamps the ticket it is creating the task for, so PMIS does
+            // not file that same ticket back (see FileStormTicket).
+            'storm_ticket_id' => ['nullable', 'integer'],
             'uploads' => ['nullable', 'array', 'max:20'],
             'uploads.*' => ['file', 'max:25600'],
             'subscribers' => ['nullable', 'array'],

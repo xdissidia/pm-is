@@ -17,6 +17,9 @@ class TaskResource extends JsonResource
         return [
             'id' => $this->id,
             'number' => $this->number,
+            // The STORM ticket this task mirrors — echoed back so STORM can
+            // confirm the link it sent, or pick up the one PMIS filed.
+            'storm_ticket_id' => $this->storm_ticket_id,
             'title' => $this->name,
             'body' => $this->description,
             'project' => [

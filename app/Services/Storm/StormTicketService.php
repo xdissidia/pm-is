@@ -3,6 +3,7 @@
 namespace App\Services\Storm;
 
 use App\Enums\StormTicketStatus;
+use App\Models\Attachment;
 use App\Models\Task;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -36,6 +37,13 @@ class StormTicketService
         'assignees',
     ];
 
+    /**
+     * What STORM's upload rules allow: 20 files, 25600 KB each.
+     */
+    public const MAX_UPLOADS = 20;
+
+    public const MAX_UPLOAD_BYTES = 25600 * 1024;
+
     protected string $baseUrl;
 
     protected ?string $token;
@@ -53,7 +61,7 @@ class StormTicketService
      * File a new ticket. Returns the ticket STORM created.
      *
      * @param  array<string, mixed>  $ticket  Keys from self::FIELDS; `status` also takes a StormTicketStatus.
-     * @param  array<int, UploadedFile|string>  $uploads  Uploaded files or readable paths.
+     * @param  array<int, UploadedFile|string|array{path: string, name?: string}>  $uploads  Uploaded files or readable paths.
      * @return array<string, mixed>
      *
      * @throws StormApiException
@@ -75,7 +83,7 @@ class StormTicketService
      * Partially update a ticket — only the fields present are sent.
      *
      * @param  array<string, mixed>  $changes
-     * @param  array<int, UploadedFile|string>  $uploads
+     * @param  array<int, UploadedFile|string|array{path: string, name?: string}>  $uploads
      * @return array<string, mixed>
      *
      * @throws StormApiException
@@ -103,7 +111,7 @@ class StormTicketService
      * equivalent, so pass those in $extra when the caller has them.
      *
      * @param  array<string, mixed>  $extra
-     * @param  array<int, UploadedFile|string>  $uploads
+     * @param  array<int, UploadedFile|string|array{path: string, name?: string}>  $uploads
      * @return array<string, mixed>
      *
      * @throws StormApiException
@@ -123,8 +131,29 @@ class StormTicketService
     }
 
     /**
+     * Turn task attachments into upload entries, dropping what STORM would
+     * reject anyway: files that are gone, oversized, or past the 20-file cap.
+     *
+     * @param  iterable<Attachment>  $attachments
+     * @return array<int, array{path: string, name: string}>
+     */
+    public static function uploadsFrom(iterable $attachments): array
+    {
+        return collect($attachments)
+            ->map(fn (Attachment $attachment) => [
+                'path' => $attachment->absolutePath(),
+                'name' => $attachment->name,
+            ])
+            ->filter(fn (array $upload) => $upload['path'] !== null
+                && filesize($upload['path']) <= self::MAX_UPLOAD_BYTES)
+            ->take(self::MAX_UPLOADS)
+            ->values()
+            ->all();
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
-     * @param  array<int, UploadedFile|string>  $uploads
+     * @param  array<int, UploadedFile|string|array{path: string, name?: string}>  $uploads
      * @return array<string, mixed>
      *
      * @throws StormApiException
@@ -205,6 +234,16 @@ class StormTicketService
         // array_filter() inside PendingRequest::attach().
         if ($upload instanceof UploadedFile) {
             return $request->attach('uploads[]', fopen($upload->getPathname(), 'r'), $upload->getClientOriginalName());
+        }
+
+        // ['path' => ..., 'name' => ...] — a stored file that keeps the name it
+        // was uploaded under rather than the ULID it is stored as.
+        if (is_array($upload) && is_file($upload['path'] ?? '')) {
+            return $request->attach(
+                'uploads[]',
+                fopen($upload['path'], 'r'),
+                $upload['name'] ?? basename($upload['path']),
+            );
         }
 
         if (is_string($upload) && is_file($upload)) {

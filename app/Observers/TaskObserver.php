@@ -2,7 +2,10 @@
 
 namespace App\Observers;
 
+use App\Enums\StormTicketStatus;
+use App\Jobs\SyncStormTicket;
 use App\Models\Task;
+use App\Support\StormSync;
 
 class TaskObserver
 {
@@ -83,6 +86,42 @@ class TaskObserver
                 'title' => $task->completed_at ? 'Task was completed' : 'Task was set to uncompleted',
                 'subtitle' => "\"{$task->name}\" was set as ".($task->completed_at ? 'completed' : 'uncompleted').' by '.auth()->user()->name,
             ]);
+        }
+
+        $this->syncStormTicket($task);
+    }
+
+    /**
+     * Push what STORM has a field for onto the ticket this task mirrors. Every
+     * write path lands here — the board, the drawer, and the move/complete
+     * actions — so it catches changes no single event covers.
+     */
+    protected function syncStormTicket(Task $task): void
+    {
+        if (blank($task->storm_ticket_id) || StormSync::suspended()) {
+            return;
+        }
+
+        $changes = [];
+
+        if ($task->wasChanged('name')) {
+            $changes['title'] = $task->name;
+        }
+
+        if ($task->wasChanged('description')) {
+            $changes['body'] = $task->description;
+        }
+
+        // Completing a task and moving it between the STORM and Done columns
+        // are the two things that mean the same as a ticket changing state.
+        if ($task->wasChanged('completed_at') || $task->wasChanged('group_id')) {
+            $changes['status'] = $task->completed_at !== null
+                ? StormTicketStatus::CLOSED->value
+                : StormTicketStatus::forTaskGroup($task->taskGroup()->value('name'))->value;
+        }
+
+        if (! empty($changes)) {
+            SyncStormTicket::dispatch($task, $changes);
         }
     }
 

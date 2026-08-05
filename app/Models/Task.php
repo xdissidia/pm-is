@@ -32,6 +32,7 @@ class Task extends Model implements AuditableContract, Sortable
         'group_id',
         'created_by_user_id',
         'invoice_id',
+        'storm_ticket_id',
         'name',
         'number',
         'description',
@@ -177,6 +178,7 @@ class Task extends Model implements AuditableContract, Sortable
     {
         return $this->belongsToMany(User::class)->using(TaskUser::class)->withTimestamps();
     }
+
     public function isFixedPrice(): bool
     {
         return $this->pricing_type === PricingType::FIXED;

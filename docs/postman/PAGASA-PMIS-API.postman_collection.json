@@ -7,7 +7,13 @@
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
   },
   "event": [
     {
@@ -23,16 +29,61 @@
     }
   ],
   "variable": [
-    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
-    { "key": "token", "value": "", "type": "string" },
-    { "key": "project_id", "value": "3", "type": "string" },
-    { "key": "task_group_id", "value": "13", "type": "string" },
-    { "key": "target_group_id", "value": "15", "type": "string" },
-    { "key": "assignee_id", "value": "16", "type": "string" },
-    { "key": "subscriber_id", "value": "15", "type": "string" },
-    { "key": "lookup_email", "value": "admin@mail.com", "type": "string" },
-    { "key": "resolved_user_id", "value": "", "type": "string" },
-    { "key": "last_task_id", "value": "", "type": "string" }
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "task_group_id",
+      "value": "13",
+      "type": "string"
+    },
+    {
+      "key": "target_group_id",
+      "value": "15",
+      "type": "string"
+    },
+    {
+      "key": "assignee_id",
+      "value": "16",
+      "type": "string"
+    },
+    {
+      "key": "subscriber_id",
+      "value": "15",
+      "type": "string"
+    },
+    {
+      "key": "lookup_email",
+      "value": "admin@mail.com",
+      "type": "string"
+    },
+    {
+      "key": "resolved_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "last_task_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "storm_ticket_id",
+      "value": "",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -57,11 +108,21 @@
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/api/user",
-              "host": ["{{base_url}}"],
-              "path": ["api", "user"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user"
+              ]
             },
             "description": "Sanity check — confirms the bearer token authenticates. Returns the token owner."
           },
@@ -104,18 +165,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"emails\": [\n    \"{{lookup_email}}\",\n    \"nobody@pagasa.test\"\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/users/lookup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "lookup"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "lookup"
+              ]
             },
             "description": "Resolve a batch of email addresses to user ids — useful for turning a list of addresses into the ids the task endpoints expect for `assignees` and `subscribers`.\n\n| Field | Rules |\n| --- | --- |\n| `emails[]` | **required**, 1–200 valid addresses |\n\n**POST, not GET, on purpose:** email addresses are personal data and should not end up in a URL, server log, or browser history, and a long batch would overflow a query string.\n\nMatching is case-insensitive and ignores surrounding whitespace. Duplicates are collapsed, so `meta.requested` may be lower than the number you sent.\n\n**Archived users never resolve** — they come back under `meta.not_found`, same as an address with no account at all.\n\nResponse:\n```json\n{\n  \"data\": [\n    { \"id\": 16, \"email\": \"john@pagasa.test\", \"name\": \"John Almario\" }\n  ],\n  \"meta\": {\n    \"requested\": 2,\n    \"found\": 1,\n    \"not_found\": [\"nobody@pagasa.test\"]\n  }\n}\n```\n\n`data` is sorted by name. Requires the *view users* permission; anything less gets `403`."
           },
@@ -159,20 +237,38 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Calibrate rain gauge at Station 4\",\n  \"body\": \"<p>Sensor drifted ~3mm over the last cycle. Recalibrate and log the before/after readings.</p>\",\n  \"assignees\": [{{assignee_id}}],\n  \"subscribers\": [{{subscriber_id}}]\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"title\": \"Calibrate rain gauge at Station 4\",\n  \"body\": \"<p>Sensor drifted ~3mm over the last cycle. Recalibrate and log the before/after readings.</p>\",\n  \"storm_ticket_id\": {{storm_ticket_id}},\n  \"assignees\": [{{assignee_id}}],\n  \"subscribers\": [{{subscriber_id}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "task-groups",
+                "{{task_group_id}}",
+                "tasks"
+              ]
             },
-            "description": "Create a task in `{{task_group_id}}`. The project is taken from the task group, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | **required**, string, max 255 |\n| `body` | optional, string (Tiptap HTML) |\n| `assignees[]` | optional, user ids — must have access to the project |\n| `subscribers[]` | optional, user ids — must have access to the project |\n\nDefaults applied server-side: `billable = true`, `hidden_from_clients = false`, no priority / due date / estimation.\n\nFires the same observers, audit log, activity feed, queued notifications and Pusher broadcasts as creating a task in the web UI."
+            "description": "Create a task in `{{task_group_id}}`. The project is taken from the task group, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | **required**, string, max 255 |\n| `body` | optional, string (Tiptap HTML) |\n| `storm_ticket_id` | optional, integer — **STORM only** |\n| `assignees[]` | optional, user ids — must have access to the project |\n| `subscribers[]` | optional, user ids — must have access to the project |\n\nDefaults applied server-side: `billable = true`, `hidden_from_clients = false`, no priority / due date / estimation.\n\nFires the same observers, audit log, activity feed, queued notifications and Pusher broadcasts as creating a task in the web UI.\n\n**`storm_ticket_id`** — send the id of the ticket this task is being created for. PMIS stores it as the link between the two, and it is what stops PMIS from filing that same ticket back to STORM: a task created in the **STORM** task group *without* this field makes PMIS file a new ticket via `POST /api/v1/pmis/tickets`. Set the `storm_ticket_id` collection variable before sending, or drop the line from the body.\n\nThe field is echoed back in the response as `data.storm_ticket_id`."
           },
           "response": []
         },
@@ -200,14 +296,41 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "Radar QC report — March cycle", "type": "text" },
-                { "key": "body", "value": "<p>Attached: raw QC export and the signed checklist.</p>", "type": "text" },
-                { "key": "assignees[]", "value": "{{assignee_id}}", "type": "text" },
-                { "key": "subscribers[]", "value": "{{subscriber_id}}", "type": "text" },
+                {
+                  "key": "title",
+                  "value": "Radar QC report — March cycle",
+                  "type": "text"
+                },
+                {
+                  "key": "body",
+                  "value": "<p>Attached: raw QC export and the signed checklist.</p>",
+                  "type": "text"
+                },
+                {
+                  "key": "storm_ticket_id",
+                  "value": "{{storm_ticket_id}}",
+                  "type": "text",
+                  "description": "STORM only: the ticket this task mirrors."
+                },
+                {
+                  "key": "assignees[]",
+                  "value": "{{assignee_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "subscribers[]",
+                  "value": "{{subscriber_id}}",
+                  "type": "text"
+                },
                 {
                   "key": "uploads[]",
                   "type": "file",
@@ -218,10 +341,18 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "task-groups",
+                "{{task_group_id}}",
+                "tasks"
+              ]
             },
-            "description": "Same endpoint (`POST /api/v1/task-groups/{id}/tasks`), sent as `multipart/form-data` so files can ride along.\n\n**Before sending:** click the `uploads[]` row in the Body tab and choose real files — Postman cannot store file paths in an exported collection, so the row starts empty.\n\nRepeat the `uploads[]`, `assignees[]` and `subscribers[]` rows to send more than one value each.\n\nDo **not** set `Content-Type` by hand; Postman adds the multipart boundary itself."
+            "description": "Same endpoint (`POST /api/v1/task-groups/{id}/tasks`), sent as `multipart/form-data` so files can ride along.\n\n**Before sending:** click the `uploads[]` row in the Body tab and choose real files — Postman cannot store file paths in an exported collection, so the row starts empty.\n\nRepeat the `uploads[]`, `assignees[]` and `subscribers[]` rows to send more than one value each.\n\nDo **not** set `Content-Type` by hand; Postman adds the multipart boundary itself.\n\nSee **Create task (JSON)** for `storm_ticket_id` — clear that row if you are not creating the task on behalf of a STORM ticket."
           },
           "response": []
         },
@@ -249,18 +380,35 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Recalibrate rain gauge — revised\",\n  \"body\": \"<p>Scope widened to cover Station 5 as well.</p>\",\n  \"assignees\": [{{assignee_id}}],\n  \"subscribers\": [{{subscriber_id}}],\n  \"task_group_id\": {{target_group_id}},\n  \"completed\": false,\n  \"due_on\": \"2026-09-01\",\n  \"estimation\": 4.5\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
             },
             "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\nAddressed by task id alone; the project is taken from the task, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `storm_ticket_status` | `Open` / `On-going` / `Closed` — picks the group by name instead of id |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\n**STORM tickets** — `storm_ticket_status` maps a ticket state onto a task group by name: `Closed` moves the task to **Done**, `Open` and `On-going` move it to **STORM**. Casing and spacing are forgiving (`ON GOING` works). It cannot be combined with `task_group_id`, since both decide the group, and it `422`s if the project has no group of that name. It is write-only — nothing stores the status itself, only the resulting group.\n\nPermissions are enforced per field: `task_group_id` and `storm_ticket_status` also require *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
           },
@@ -284,7 +432,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -294,12 +447,37 @@
                   "type": "text",
                   "description": "Laravel method spoofing — PHP cannot parse multipart bodies on a real PATCH request."
                 },
-                { "key": "title", "value": "Revised with new evidence", "type": "text" },
-                { "key": "body", "value": "<p>Findings attached.</p>", "type": "text" },
-                { "key": "assignees[]", "value": "{{assignee_id}}", "type": "text" },
-                { "key": "subscribers[]", "value": "{{subscriber_id}}", "type": "text" },
-                { "key": "task_group_id", "value": "{{target_group_id}}", "type": "text" },
-                { "key": "completed", "value": "1", "type": "text", "description": "Form fields are strings — use 1/0 for booleans here, not true/false." },
+                {
+                  "key": "title",
+                  "value": "Revised with new evidence",
+                  "type": "text"
+                },
+                {
+                  "key": "body",
+                  "value": "<p>Findings attached.</p>",
+                  "type": "text"
+                },
+                {
+                  "key": "assignees[]",
+                  "value": "{{assignee_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "subscribers[]",
+                  "value": "{{subscriber_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "task_group_id",
+                  "value": "{{target_group_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "completed",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Form fields are strings — use 1/0 for booleans here, not true/false."
+                },
                 {
                   "key": "uploads[]",
                   "type": "file",
@@ -310,8 +488,15 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
             },
             "description": "Same update endpoint, as `multipart/form-data` so files can ride along.\n\nNote the `_method=PATCH` field: PHP does not populate `$_FILES` for a genuine PATCH request, so the request is sent as `POST` and Laravel rewrites the method. This is the standard Laravel workaround, not a quirk of this API.\n\nUploads are **appended** to whatever the task already has — there is no replace. Use the existing attachment delete route to remove one.\n\n**Before sending:** click the `uploads[]` row and choose real files; Postman cannot store file paths in an exported collection."
           },
@@ -341,18 +526,38 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"task_group_id\": {{target_group_id}},\n  \"position\": 0\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/group",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "group"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{project_id}}",
+                "tasks",
+                "{{last_task_id}}",
+                "group"
+              ]
             },
             "description": "Move a task into another task group.\n\n| Field | Rules |\n| --- | --- |\n| `task_group_id` | **required**, must be a live (non-archived) group **in the same project** |\n| `position` | optional, 0-based slot in the target group. Omit to append to the end; values past the end are clamped. |\n\nPassing the group the task is already in reorders it inside that group.\n\nOrdering is recalculated server-side — unlike the drag-and-drop endpoint the web UI uses, you do not send the full ordered id list. Open boards update live: a cross-group move broadcasts `TaskGroupChanged`, a same-group move broadcasts `TaskOrderChanged`.\n\nUses `{{last_task_id}}`, which the two create requests set automatically."
           },
@@ -377,18 +582,38 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"completed\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/complete",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "complete"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{project_id}}",
+                "tasks",
+                "{{last_task_id}}",
+                "complete"
+              ]
             },
             "description": "Mark a task done.\n\n`completed` is optional and defaults to `true`, so an empty body marks the task done. Send `{\"completed\": false}` to reopen it.\n\nWrites an entry to the project activity feed and broadcasts `TaskUpdated` for `completed_at`."
           },
@@ -413,18 +638,38 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"completed\": false\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/projects/{{project_id}}/tasks/{{last_task_id}}/complete",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "complete"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{project_id}}",
+                "tasks",
+                "{{last_task_id}}",
+                "complete"
+              ]
             }
           },
           "response": []
@@ -672,18 +917,35 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "tasks", "{{last_task_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
             },
             "description": "A no-op update is treated as a mistake rather than silently accepted."
           },
@@ -708,18 +970,36 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"body\": \"A body with no title\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "task-groups",
+                "{{task_group_id}}",
+                "tasks"
+              ]
             }
           },
           "response": []
@@ -743,18 +1023,36 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Should be rejected\",\n  \"assignees\": [{{no_access_user_id}}]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "task-groups",
+                "{{task_group_id}}",
+                "tasks"
+              ]
             },
             "description": "Assignees and subscribers must appear in the project's access list, otherwise you would notify people who cannot open the task. Set `no_access_user_id` in the environment to a user without access to `{{project_id}}`."
           },
@@ -777,21 +1075,41 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Should be rejected\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/api/v1/task-groups/{{task_group_id}}/tasks",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "task-groups", "{{task_group_id}}", "tasks"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "task-groups",
+                "{{task_group_id}}",
+                "tasks"
+              ]
             }
           },
           "response": []

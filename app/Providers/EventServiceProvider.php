@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Events\Task\AttachmentsUploaded;
 use App\Events\Task\CommentCreated;
 use App\Events\Task\TaskCreated;
 use App\Events\UserCreated;
+use App\Listeners\FileStormTicket;
+use App\Listeners\ForwardAttachmentsToStorm;
 use App\Listeners\NotifyTaskSubscribers;
 use App\Listeners\SendEmailWithCredentials;
 use App\Models\Comment;
@@ -31,9 +34,13 @@ class EventServiceProvider extends ServiceProvider
         ],
         TaskCreated::class => [
             NotifyTaskSubscribers::class,
+            FileStormTicket::class,
         ],
         CommentCreated::class => [
             NotifyTaskSubscribers::class,
+        ],
+        AttachmentsUploaded::class => [
+            ForwardAttachmentsToStorm::class,
         ],
     ];
 
