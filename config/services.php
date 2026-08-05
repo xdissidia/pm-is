@@ -36,4 +36,15 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
+
+    /*
+     * STORM — the helpdesk PMIS files tickets into. Its endpoints live under
+     * /api/v1/pmis and authenticate with a Sanctum token sent as a bearer.
+     */
+    'storm' => [
+        'url' => env('STORM_URL', 'http://localhost:9000'),
+        'token' => env('STORM_API_TOKEN'),
+        'timeout' => env('STORM_TIMEOUT', 20),
+        'verify' => env('STORM_VERIFY_SSL', true),
+    ],
 ];
