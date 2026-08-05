@@ -70,7 +70,7 @@ class TaskController extends Controller
 
         // Moving groups and completing are separate permissions in the web app;
         // going through this endpoint must not be a way around them.
-        if (array_key_exists('task_group_id', $changes)) {
+        if (array_key_exists('task_group_id', $changes) || array_key_exists('storm_ticket_status', $changes)) {
             $this->authorize('reorder', [Task::class, $project]);
         }
 

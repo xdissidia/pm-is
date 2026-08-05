@@ -34,6 +34,11 @@
   transition: 0.3s ease opacity;
 }
 
+.showAll {
+  display: flex;
+  margin: var(--mantine-spacing-xs) auto 0;
+}
+
 .itemDragging {
 }
 

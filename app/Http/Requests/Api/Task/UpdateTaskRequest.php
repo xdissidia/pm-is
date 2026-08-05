@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Api\Task;
 
+use App\Enums\StormTicketStatus;
 use App\Http\Requests\Api\Concerns\ValidatesTaskInput;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
@@ -19,6 +21,7 @@ class UpdateTaskRequest extends FormRequest
         'assignees',
         'subscribers',
         'task_group_id',
+        'storm_ticket_status',
         'completed',
         'labels',
         'due_on',
@@ -34,6 +37,23 @@ class UpdateTaskRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Accept any casing or spacing for the ticket status ("on going",
+     * "ONGOING") by folding it to the canonical value before the rules run.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('storm_ticket_status')) {
+            return;
+        }
+
+        $status = StormTicketStatus::fromLoose($this->input('storm_ticket_status'));
+
+        if ($status) {
+            $this->merge(['storm_ticket_status' => $status->value]);
+        }
     }
 
     /**
@@ -53,6 +73,7 @@ class UpdateTaskRequest extends FormRequest
             'subscribers' => ['sometimes', 'array'],
             'subscribers.*' => ['integer', 'distinct', 'exists:users,id'],
             'task_group_id' => ['sometimes', 'integer', $this->taskGroupInProjectRule()],
+            'storm_ticket_status' => ['sometimes', 'string', Rule::enum(StormTicketStatus::class)],
             'completed' => ['sometimes', 'boolean'],
             'labels' => ['sometimes', 'array'],
             'labels.*' => ['integer', 'distinct', 'exists:labels,id'],
@@ -77,7 +98,43 @@ class UpdateTaskRequest extends FormRequest
                     'Send at least one field to update: '.implode(', ', [...self::UPDATABLE, 'uploads']).'.',
                 );
             }
+
+            $this->validateStormTicketStatus($validator);
         });
+    }
+
+    /**
+     * The ticket status decides the task group, so it cannot be combined with
+     * an explicit one, and the group it maps to has to actually exist.
+     */
+    protected function validateStormTicketStatus(Validator $validator): void
+    {
+        if (! $this->has('storm_ticket_status') || $validator->errors()->has('storm_ticket_status')) {
+            return;
+        }
+
+        if ($this->has('task_group_id')) {
+            $validator->errors()->add(
+                'storm_ticket_status',
+                'Send either storm_ticket_status or task_group_id, not both — each one decides the task group.',
+            );
+
+            return;
+        }
+
+        $status = StormTicketStatus::tryFrom((string) $this->input('storm_ticket_status'));
+        $project = $this->project();
+
+        if (! $status || ! $project) {
+            return;
+        }
+
+        if (! $status->taskGroupIn($project->id)) {
+            $validator->errors()->add(
+                'storm_ticket_status',
+                "This project has no \"{$status->taskGroupName()}\" task group to move the task into.",
+            );
+        }
     }
 
     /**

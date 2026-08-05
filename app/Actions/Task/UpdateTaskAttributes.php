@@ -2,6 +2,7 @@
 
 namespace App\Actions\Task;
 
+use App\Enums\StormTicketStatus;
 use App\Events\Task\TaskUpdated;
 use App\Models\Task;
 use App\Models\TaskGroup;
@@ -48,6 +49,17 @@ class UpdateTaskAttributes
             // gets the same TaskGroupChanged broadcast a drag-and-drop sends.
             if (array_key_exists('task_group_id', $changes)) {
                 $task = (new MoveTaskToGroup)->move($task, TaskGroup::findOrFail($changes['task_group_id']));
+            }
+
+            // A STORM ticket status picks the group by name instead of by id:
+            // Closed lands in "Done", anything still live goes to "STORM".
+            if (array_key_exists('storm_ticket_status', $changes)) {
+                $group = StormTicketStatus::from($changes['storm_ticket_status'])
+                    ->taskGroupIn($task->project_id);
+
+                if ($group) {
+                    $task = (new MoveTaskToGroup)->move($task, $group);
+                }
             }
 
             if (array_key_exists('completed', $changes)) {

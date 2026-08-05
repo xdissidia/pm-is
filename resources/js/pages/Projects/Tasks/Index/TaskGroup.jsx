@@ -1,13 +1,27 @@
 import useTaskDrawerStore from '@/hooks/store/useTaskDrawerStore';
+import usePreferences from '@/hooks/usePreferences';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
-import { ActionIcon, Flex, Group, Text, Tooltip, rem } from '@mantine/core';
-import { IconGripVertical, IconPlus } from '@tabler/icons-react';
+import { ActionIcon, Button, Flex, Group, Text, Tooltip, rem } from '@mantine/core';
+import { IconChevronDown, IconChevronUp, IconGripVertical, IconPlus } from '@tabler/icons-react';
+import { useState } from 'react';
 import Task from './Task';
 import TaskGroupActions from './TaskGroupActions';
 import classes from './css/TaskGroup.module.css';
 
+// In list view, longer groups are cut off until the user asks for the rest.
+// Kanban columns scroll in their own viewport, so they always show everything.
+const COLLAPSED_LIMIT = 10;
+
 export default function TaskGroup({ group, tasks, ...props }) {
   const { openCreateTask } = useTaskDrawerStore();
+  const { tasksView } = usePreferences();
+  const [showAll, setShowAll] = useState(false);
+
+  const collapsible = tasksView === 'list';
+  const hiddenCount = collapsible ? tasks.length - COLLAPSED_LIMIT : 0;
+  // Always a prefix of the full list, so a rendered task's index still matches
+  // its index in the store — which is what drag-and-drop reordering posts.
+  const visibleTasks = hiddenCount > 0 && !showAll ? tasks.slice(0, COLLAPSED_LIMIT) : tasks;
 
   return (
     <Draggable
@@ -82,7 +96,7 @@ export default function TaskGroup({ group, tasks, ...props }) {
                 {...provided.droppableProps}
                 className={snapshot.isDraggingOver ? 'isDraggingOver' : ''}
               >
-                {tasks.map((task, index) => (
+                {visibleTasks.map((task, index) => (
                   <Task
                     key={task.id}
                     task={task}
@@ -93,6 +107,31 @@ export default function TaskGroup({ group, tasks, ...props }) {
               </Flex>
             )}
           </Droppable>
+
+          {hiddenCount > 0 && (
+            <Button
+              variant='subtle'
+              size='compact-sm'
+              radius='xl'
+              className={classes.showAll}
+              rightSection={
+                showAll ? (
+                  <IconChevronUp
+                    size={14}
+                    stroke={1.5}
+                  />
+                ) : (
+                  <IconChevronDown
+                    size={14}
+                    stroke={1.5}
+                  />
+                )
+              }
+              onClick={() => setShowAll(current => !current)}
+            >
+              {showAll ? `Show less` : `Show all ${tasks.length}`}
+            </Button>
+          )}
         </div>
       )}
     </Draggable>

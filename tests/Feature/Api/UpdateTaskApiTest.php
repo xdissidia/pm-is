@@ -199,6 +199,100 @@ it('rejects a task group from another project', function () {
     expect($this->task->fresh()->group_id)->toBe($this->group->id);
 });
 
+it('routes a closed STORM ticket into the Done group', function () {
+    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+    $this->task->update(['group_id' => $storm->id]);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'Closed', 'completed' => true])
+        ->assertOk()
+        ->assertJsonPath('data.group.name', 'Done');
+
+    expect($this->task->fresh()->group_id)->toBe($this->doneGroup->id)
+        ->and($this->task->fresh()->completed_at)->not->toBeNull();
+});
+
+it('routes open and on-going STORM tickets into the STORM group', function ($status) {
+    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => $status])
+        ->assertOk()
+        ->assertJsonPath('data.group.name', 'STORM');
+
+    expect($this->task->fresh()->group_id)->toBe($storm->id);
+})->with(['Open', 'On-going']);
+
+it('accepts a loosely cased ticket status', function () {
+    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'ON GOING'])
+        ->assertOk();
+
+    expect($this->task->fresh()->group_id)->toBe($storm->id);
+});
+
+it('rejects an unknown ticket status', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'Escalated'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('storm_ticket_status');
+});
+
+it('rejects a ticket status sent together with a task group id', function () {
+    TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'storm_ticket_status' => 'Open',
+            'task_group_id' => $this->doneGroup->id,
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('storm_ticket_status');
+
+    expect($this->task->fresh()->group_id)->toBe($this->group->id);
+});
+
+it('rejects a ticket status when the project has no matching group', function () {
+    // This project has "Done" but no "STORM" group.
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'Open'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('storm_ticket_status');
+
+    expect($this->task->fresh()->group_id)->toBe($this->group->id);
+});
+
+it('marks an unfinished closed ticket via title and completed', function () {
+    TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, [
+            'title' => '[UNRESOLVED] group probe',
+            'storm_ticket_status' => 'Closed',
+            'completed' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.title', '[UNRESOLVED] group probe')
+        ->assertJsonPath('data.group.name', 'Done');
+
+    expect($this->task->fresh()->completed_at)->not->toBeNull();
+});
+
+it('reopens a ticket back into the STORM group', function () {
+    $storm = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'STORM', 'color' => 'red']);
+    $this->task->update(['group_id' => $this->doneGroup->id, 'completed_at' => now()]);
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson($this->url, ['storm_ticket_status' => 'Open', 'completed' => false])
+        ->assertOk()
+        ->assertJsonPath('data.group.name', 'STORM')
+        ->assertJsonPath('data.completed_at', null);
+
+    expect($this->task->fresh()->group_id)->toBe($storm->id);
+});
+
 it('tags the task as done', function () {
     $this->actingAs($this->user, 'sanctum')
         ->patchJson($this->url, ['completed' => true])

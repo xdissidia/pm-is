@@ -262,7 +262,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "tasks", "{{last_task_id}}"]
             },
-            "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\nAddressed by task id alone; the project is taken from the task, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\nPermissions are enforced per field: `task_group_id` also requires *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
+            "description": "Partial update — **only the fields you send change**. Anything you leave out is untouched.\n\nAddressed by task id alone; the project is taken from the task, so it is not part of the path.\n\n| Field | Rules |\n| --- | --- |\n| `title` | string, max 255, may not be blank |\n| `body` | string or `null` |\n| `assignees[]` | user ids — **replaces** the current set. `[]` clears it |\n| `subscribers[]` | user ids — **replaces** the current set |\n| `task_group_id` | a live group **in the same project**; appends to the end of it |\n| `storm_ticket_status` | `Open` / `On-going` / `Closed` — picks the group by name instead of id |\n| `completed` | `true` tags the task done, `false` reopens it |\n| `uploads[]` | files — **appends**, never replaces (multipart only) |\n| `labels[]` | label ids — **replaces** the current set |\n| `due_on` | date (`YYYY-MM-DD`) or `null` |\n| `estimation` | hours, number ≥ 0, or `null` |\n| `priority_id` | task priority id, or `null` |\n| `billable` | boolean |\n| `hidden_from_clients` | boolean |\n\nSending an empty body is rejected with `422`; send at least one field.\n\nExplicit `null` clears a nullable field, which is different from omitting the key. Array fields replace rather than merge — read the current values first if you mean to add one.\n\nEach changed field broadcasts its own `TaskUpdated` event and writes to the activity feed, exactly as editing in the task drawer does. `task_group_id` goes through the same path as a drag-and-drop, so it broadcasts `TaskGroupChanged` and rebuilds ordering; use the dedicated **Move task to task group** request when you need to control the `position` within the target group.\n\n**STORM tickets** — `storm_ticket_status` maps a ticket state onto a task group by name: `Closed` moves the task to **Done**, `Open` and `On-going` move it to **STORM**. Casing and spacing are forgiving (`ON GOING` works). It cannot be combined with `task_group_id`, since both decide the group, and it `422`s if the project has no group of that name. It is write-only — nothing stores the status itself, only the resulting group.\n\nPermissions are enforced per field: `task_group_id` and `storm_ticket_status` also require *reorder task*, `completed` also requires *complete task*.\n\n`pricing_type` and `fixed_price` are deliberately not exposed here."
           },
           "response": []
         },
@@ -426,6 +426,224 @@
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "projects", "{{project_id}}", "tasks", "{{last_task_id}}", "complete"]
             }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STORM ticket lifecycle",
+      "description": "The ticket states in order. Run **Tasks › Create task (JSON)** first (against the STORM group) so `{{last_task_id}}` is set, then work down this folder.",
+      "item": [
+        {
+          "name": "2. On-going",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "console.log(task.group.name + ' | completed: ' + (task.completed_at ? 1 : 0) + ' | ' + task.title);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storm_ticket_status\": \"On-going\",\n  \"completed\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
+            },
+            "description": "Ticket picked up. Stays in the **STORM** group."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Closed (resolved)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "console.log(task.group.name + ' | completed: ' + (task.completed_at ? 1 : 0) + ' | ' + task.title);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storm_ticket_status\": \"Closed\",\n  \"completed\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
+            },
+            "description": "Resolved. Moves to **Done** and is marked complete."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Closed (unfinished)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "console.log(task.group.name + ' | completed: ' + (task.completed_at ? 1 : 0) + ' | ' + task.title);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storm_ticket_status\": \"Closed\",\n  \"completed\": true,\n  \"title\": \"[UNRESOLVED] group probe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
+            },
+            "description": "Closed without resolving. Same move to **Done**; the `[UNRESOLVED]` marker is carried in the title, since the API stores no separate resolution field."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Reopened",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const task = pm.response.json().data;",
+                  "console.log(task.group.name + ' | completed: ' + (task.completed_at ? 1 : 0) + ' | ' + task.title);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storm_ticket_status\": \"Open\",\n  \"completed\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{last_task_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tasks",
+                "{{last_task_id}}"
+              ]
+            },
+            "description": "Reopened. Moves back to **STORM** and clears the completion."
           },
           "response": []
         }
