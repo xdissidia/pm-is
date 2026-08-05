@@ -29,6 +29,9 @@ class StoreTaskRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
+            // Omit it and the task is stored unfiled — no project, no group —
+            // until an update moves it into one.
+            'task_group_id' => ['nullable', 'integer', $this->taskGroupInProjectRule()],
             // STORM stamps the ticket it is creating the task for, so PMIS does
             // not file that same ticket back (see FileStormTicket).
             'storm_ticket_id' => ['nullable', 'integer'],
@@ -44,6 +47,13 @@ class StoreTaskRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(fn (Validator $validator) => $this->validateMembersHaveProjectAccess($validator));
+    }
+
+    public function messages(): array
+    {
+        return [
+            'task_group_id.exists' => 'The selected task group does not exist, or is archived.',
+        ];
     }
 
     public function attributes(): array

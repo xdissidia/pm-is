@@ -21,23 +21,29 @@ use Illuminate\Http\JsonResponse;
 class TaskController extends Controller
 {
     /**
-     * Create a task in the given task group. The project is taken from the
-     * group, so callers never pass it.
+     * Create a task. `task_group_id` decides where it lands; the project is
+     * taken from that group, so callers never pass it.
+     *
+     * Without a group the task is stored unfiled: no project, no group, no
+     * number. It gets all three when an update moves it into a task group
+     * (see MoveTaskToGroup).
      */
-    public function store(StoreTaskRequest $request, TaskGroup $taskGroup): JsonResponse
+    public function store(StoreTaskRequest $request): JsonResponse
     {
-        $project = $this->projectOf($taskGroup);
+        $taskGroup = TaskGroup::find($request->validated('task_group_id'));
+
+        $project = $taskGroup ? $this->projectOf($taskGroup) : null;
 
         $this->authorize('create', [Task::class, $project]);
 
         abort_if(
-            $project->isArchived() || $taskGroup->isArchived(),
+            $project?->isArchived() === true,
             422,
-            'Tasks cannot be added to an archived project or task group.',
+            'Tasks cannot be added to an archived project.',
         );
 
         $task = (new CreateTask)->create($project, [
-            'group_id' => $taskGroup->id,
+            'group_id' => $taskGroup?->id,
             'storm_ticket_id' => $request->validated('storm_ticket_id'),
             'name' => $request->validated('title'),
             'description' => $request->validated('body'),
@@ -75,7 +81,9 @@ class TaskController extends Controller
         // Moving groups and completing are separate permissions in the web app;
         // going through this endpoint must not be a way around them.
         if (array_key_exists('task_group_id', $changes) || array_key_exists('storm_ticket_status', $changes)) {
-            $this->authorize('reorder', [Task::class, $project]);
+            // An unfiled task adopts the destination group's project, so that
+            // is the project the move has to be allowed in.
+            $this->authorize('reorder', [Task::class, $project ?? $this->projectOfGroup($changes['task_group_id'] ?? null)]);
         }
 
         if (array_key_exists('completed', $changes)) {
@@ -138,11 +146,23 @@ class TaskController extends Controller
 
     /**
      * The owning project, archived ones included — Project's global scope hides
-     * those, and policies still need the record to answer with.
+     * those, and policies still need the record to answer with. Null only for a
+     * task stored unfiled (see store()).
      */
-    protected function projectOf(Task|TaskGroup $model): Project
+    protected function projectOf(Task|TaskGroup $model): ?Project
     {
-        return $model->project()->withArchived()->firstOrFail();
+        return $model->project()->withArchived()->first();
+    }
+
+    /**
+     * The project a task group id belongs to, for authorizing a move before the
+     * task itself has one.
+     */
+    protected function projectOfGroup(?int $groupId): ?Project
+    {
+        $group = $groupId === null ? null : TaskGroup::find($groupId);
+
+        return $group ? $this->projectOf($group) : null;
     }
 
     protected function respondWithTask(Task $task): JsonResponse

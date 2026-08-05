@@ -32,6 +32,11 @@ class TaskCreated implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        // An unfiled task belongs to no project, so no board is listening yet.
+        if ($this->task->project_id === null) {
+            return [];
+        }
+
         return [
             new PrivateChannel("App.Models.Project.{$this->task->project_id}"),
         ];

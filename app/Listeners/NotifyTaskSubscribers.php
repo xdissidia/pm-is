@@ -28,6 +28,13 @@ class NotifyTaskSubscribers
     protected function handleCreatedTask($event): void
     {
         $task = $event->task;
+
+        // An unfiled task has no project to resolve mentions against and no
+        // project page for a notification to link to.
+        if ($task->project_id === null) {
+            return;
+        }
+
         $mentionedUsers = collect();
 
         // First handle notification for mentioned users

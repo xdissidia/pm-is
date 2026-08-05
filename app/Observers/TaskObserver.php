@@ -112,12 +112,24 @@ class TaskObserver
             $changes['body'] = $task->description;
         }
 
-        // Completing a task and moving it between the STORM and Done columns
-        // are the two things that mean the same as a ticket changing state.
+        // Completing a task and moving it between columns are the two things
+        // that mean the same as a ticket changing state.
         if ($task->wasChanged('completed_at') || $task->wasChanged('group_id')) {
-            $changes['status'] = $task->completed_at !== null
-                ? StormTicketStatus::CLOSED->value
-                : StormTicketStatus::forTaskGroup($task->taskGroup()->value('name'))->value;
+            $status = $task->completed_at !== null
+                ? StormTicketStatus::CLOSED
+                : StormTicketStatus::forTaskGroup($task->taskGroup()->value('name'));
+
+            $changes['status'] = $status->value;
+
+            // Completing is what *resolves* the ticket (`resolved` is STORM's
+            // slug for "Closed (resolved)"), and un-completing puts it back to
+            // ongoing — a bare move into Done only closes it. A move into a
+            // working column marks both fields ongoing.
+            if ($task->wasChanged('completed_at')) {
+                $changes['work_status'] = $task->completed_at !== null ? 'resolved' : 'ongoing';
+            } elseif ($status === StormTicketStatus::ON_GOING) {
+                $changes['work_status'] = 'ongoing';
+            }
         }
 
         if (! empty($changes)) {

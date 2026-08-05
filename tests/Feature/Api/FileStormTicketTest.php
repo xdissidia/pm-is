@@ -55,7 +55,8 @@ beforeEach(function () {
 
     $this->createTask = fn (TaskGroup $group, array $payload = []) => $this
         ->actingAs($this->user, 'sanctum')
-        ->postJson("/api/v1/task-groups/{$group->id}/tasks", array_merge([
+        ->postJson('/api/v1/tasks', array_merge([
+            'task_group_id' => $group->id,
             'title' => 'Radar is down',
             'body' => '<p>No returns since 0300.</p>',
         ], $payload));
@@ -136,7 +137,8 @@ it('sends the task attachments up with the ticket', function () {
     // Not a faked disk: the ticket uploads read the stored file back off disk.
     $response = $this
         ->actingAs($this->user, 'sanctum')
-        ->post("/api/v1/task-groups/{$this->stormGroup->id}/tasks", [
+        ->post('/api/v1/tasks', [
+            'task_group_id' => $this->stormGroup->id,
             'title' => 'Radar QC report',
             'body' => '<p>Attached: the QC export.</p>',
             'uploads' => [UploadedFile::fake()->create('qc-export.pdf', 12)],

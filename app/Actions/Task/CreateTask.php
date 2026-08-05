@@ -17,7 +17,12 @@ use Throwable;
 
 class CreateTask
 {
-    public function create(Project $project, array $data): Task
+    /**
+     * A null project stores the task unfiled — no project, no group, and no
+     * number, since numbering runs per project. MoveTaskToGroup fills all three
+     * in when the task is later moved into a group.
+     */
+    public function create(?Project $project, array $data): Task
     {
         return DB::transaction(function () use ($project, $data) {
             if (isset($data['pricing_type']) && $data['pricing_type'] === PricingType::HOURLY->value) {
@@ -26,15 +31,16 @@ class CreateTask
                 $data['fixed_price'] = (int) ($data['fixed_price'] * 100);
             }
 
-            $task = $project->tasks()->create([
-                'group_id' => $data['group_id'],
+            $task = Task::create([
+                'project_id' => $project?->id,
+                'group_id' => $data['group_id'] ?? null,
                 'created_by_user_id' => auth()->id(),
                 // Set when STORM files the task — it is what stops the ticket
                 // from being filed straight back to STORM (see FileStormTicket).
                 'storm_ticket_id' => $data['storm_ticket_id'] ?? null,
                 // 'assigned_users' => $data['assigned_users'],
                 'name' => $data['name'],
-                'number' => $project->tasks()->withArchived()->count() + 1,
+                'number' => $project ? $project->tasks()->withArchived()->count() + 1 : null,
                 'description' => $data['description'],
                 'due_on' => $data['due_on'],
                 'estimation' => $data['estimation'],

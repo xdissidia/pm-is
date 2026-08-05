@@ -22,13 +22,14 @@ class TaskResource extends JsonResource
             'storm_ticket_id' => $this->storm_ticket_id,
             'title' => $this->name,
             'body' => $this->description,
+            // Both are null until an unfiled task is moved into a task group.
             'project' => [
                 'id' => $this->project_id,
-                'name' => $this->whenLoaded('project', fn () => $this->project->name),
+                'name' => $this->whenLoaded('project', fn () => $this->project?->name),
             ],
             'group' => [
                 'id' => $this->group_id,
-                'name' => $this->whenLoaded('taskGroup', fn () => $this->taskGroup->name),
+                'name' => $this->whenLoaded('taskGroup', fn () => $this->taskGroup?->name),
             ],
             // Not whenLoaded(): Task casts an attribute called `priority`, which
             // shadows the relation, so `$task->priority` — and therefore

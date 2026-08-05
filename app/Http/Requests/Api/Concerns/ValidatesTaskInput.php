@@ -16,6 +16,10 @@ trait ValidatesTaskInput
      * The project this request operates on. Endpoints that still take a
      * {project} segment use it; the rest infer it from the task or group,
      * which is the only reason a project is needed at all here.
+     *
+     * A create falls back to the group named in the body, and a task that is
+     * not filed anywhere yet has no project until one is — both end up null
+     * when the request names no group at all.
      */
     protected function project(): ?Project
     {
@@ -28,20 +32,39 @@ trait ValidatesTaskInput
         $owner = $this->route('task') ?? $this->route('taskGroup');
 
         if ($owner instanceof Task || $owner instanceof TaskGroup) {
-            return $owner->project()->withArchived()->first();
+            $project = $owner->project()->withArchived()->first();
         }
 
-        return null;
+        return $project ?? $this->projectOfGroupInBody();
     }
 
     /**
-     * A task group can only be one that lives in this project and is not archived.
+     * The project of the task group the body asks for. Read straight off the
+     * input: the rules that validate the id run against this too.
+     */
+    protected function projectOfGroupInBody(): ?Project
+    {
+        $groupId = $this->input('task_group_id');
+
+        if (! is_numeric($groupId)) {
+            return null;
+        }
+
+        return TaskGroup::find((int) $groupId)?->project()->withArchived()->first();
+    }
+
+    /**
+     * A task group can only be one that lives in this project and is not
+     * archived. A task with no project yet is the exception: it takes whichever
+     * project the group belongs to, so any live group will do.
      */
     protected function taskGroupInProjectRule(): Exists
     {
-        return Rule::exists('task_groups', 'id')
-            ->where('project_id', $this->project()?->id)
-            ->whereNull('archived_at');
+        $rule = Rule::exists('task_groups', 'id')->whereNull('archived_at');
+
+        $project = $this->project();
+
+        return $project ? $rule->where('project_id', $project->id) : $rule;
     }
 
     /**

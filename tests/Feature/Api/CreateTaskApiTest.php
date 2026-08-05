@@ -46,7 +46,7 @@ beforeEach(function () {
         'color' => 'blue',
     ]);
 
-    $this->url = "/api/v1/task-groups/{$this->taskGroup->id}/tasks";
+    $this->url = '/api/v1/tasks';
 });
 
 it('creates a task with title, body, subscribers, assignees and uploads', function () {
@@ -60,6 +60,7 @@ it('creates a task with title, body, subscribers, assignees and uploads', functi
     $response = $this
         ->actingAs($this->user, 'sanctum')
         ->post($this->url, [
+            'task_group_id' => $this->taskGroup->id,
             'title' => 'Task created over the API',
             'body' => '<p>Some rich text body</p>',
             'assignees' => [$assignee->id],
@@ -86,9 +87,16 @@ it('creates a task with title, body, subscribers, assignees and uploads', functi
 
 it('requires a title', function () {
     $this->actingAs($this->user, 'sanctum')
-        ->post($this->url, ['body' => 'no title here'])
+        ->post($this->url, ['task_group_id' => $this->taskGroup->id, 'body' => 'no title here'])
         ->assertStatus(422)
         ->assertJsonValidationErrors('title');
+});
+
+it('rejects an unknown task group', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->postJson($this->url, ['task_group_id' => 99999, 'title' => 'Nope'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('task_group_id');
 });
 
 it('rejects users without access to the project', function () {
@@ -96,7 +104,11 @@ it('rejects users without access to the project', function () {
     $outsider->assignRole('client');
 
     $this->actingAs($this->user, 'sanctum')
-        ->post($this->url, ['title' => 'Nope', 'assignees' => [$outsider->id]])
+        ->post($this->url, [
+            'task_group_id' => $this->taskGroup->id,
+            'title' => 'Nope',
+            'assignees' => [$outsider->id],
+        ])
         ->assertStatus(422)
         ->assertJsonValidationErrors('assignees.0');
 });

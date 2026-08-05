@@ -30,17 +30,17 @@ enum StormTicketStatus: string
 
     /**
      * The inverse of taskGroupName(): the state a task sitting in this group
-     * represents. Only "Done" is closed; every other column is still live.
-     *
-     * Open rather than On-going, because PMIS has no column for the middle
-     * state — a ticket STORM had On-going only moves back to Open here when
-     * something actually reopens it.
+     * represents. "Done" is closed, "STORM" is open — the ticket is back where
+     * it started — and any other column means someone pulled it into their
+     * workflow, which is what On-going describes.
      */
     public static function forTaskGroup(?string $groupName): self
     {
-        return $groupName !== null && Str::lower($groupName) === Str::lower(self::DONE_GROUP)
-            ? self::CLOSED
-            : self::OPEN;
+        return match (true) {
+            $groupName !== null && Str::lower($groupName) === Str::lower(self::DONE_GROUP) => self::CLOSED,
+            self::isLiveGroup($groupName) => self::OPEN,
+            default => self::ON_GOING,
+        };
     }
 
     /**

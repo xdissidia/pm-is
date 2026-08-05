@@ -49,7 +49,8 @@ beforeEach(function () {
 it('keeps the storm attachment ids sent with a new task', function () {
     $response = $this
         ->actingAs($this->user, 'sanctum')
-        ->post("/api/v1/task-groups/{$this->group->id}/tasks", [
+        ->post('/api/v1/tasks', [
+            'task_group_id' => $this->group->id,
             'title' => 'Ticket with files',
             'body' => '<p>Two files.</p>',
             'storm_ticket_id' => 512,
@@ -92,7 +93,8 @@ it('keeps the storm attachment ids sent with an update', function () {
 it('does not mistake a plain upload list for storm ids', function () {
     $response = $this
         ->actingAs($this->user, 'sanctum')
-        ->post("/api/v1/task-groups/{$this->group->id}/tasks", [
+        ->post('/api/v1/tasks', [
+            'task_group_id' => $this->group->id,
             'title' => 'Ticket with files',
             'body' => '<p>Sent as uploads[].</p>',
             'storm_ticket_id' => 512,

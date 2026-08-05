@@ -18,18 +18,21 @@ class TaskPolicy
 
     /**
      * Determine whether the user can create models.
+     *
+     * A null project means the task is not filed into one yet — there is no
+     * project access to check, so the permission alone decides.
      */
-    public function create(User $user, Project $project): bool
+    public function create(User $user, ?Project $project): bool
     {
-        return $user->hasPermissionTo('create task') && $user->hasProjectAccess($project);
+        return $user->hasPermissionTo('create task') && ($project === null || $user->hasProjectAccess($project));
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Task $task, Project $project): bool
+    public function update(User $user, Task $task, ?Project $project): bool
     {
-        return $user->hasPermissionTo('edit task') && $user->hasProjectAccess($project);
+        return $user->hasPermissionTo('edit task') && ($project === null || $user->hasProjectAccess($project));
     }
 
     /**
@@ -51,16 +54,16 @@ class TaskPolicy
     /**
      * Determine whether the user can reorder the model.
      */
-    public function reorder(User $user, Project $project): bool
+    public function reorder(User $user, ?Project $project): bool
     {
-        return $user->hasPermissionTo('reorder task') && $user->hasProjectAccess($project);
+        return $user->hasPermissionTo('reorder task') && ($project === null || $user->hasProjectAccess($project));
     }
 
     /**
      * Determine whether the user can complete the model.
      */
-    public function complete(User $user, Project $project): bool
+    public function complete(User $user, ?Project $project): bool
     {
-        return $user->hasPermissionTo('complete task') && $user->hasProjectAccess($project);
+        return $user->hasPermissionTo('complete task') && ($project === null || $user->hasProjectAccess($project));
     }
 }

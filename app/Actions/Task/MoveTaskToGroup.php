@@ -15,6 +15,9 @@ class MoveTaskToGroup
      *
      * A null position appends the task to the end of the group. Moving a task
      * into the group it is already in is treated as a reorder.
+     *
+     * A task stored unfiled has no project or group of its own; it adopts the
+     * destination group's project here, and only then gets its task number.
      */
     public function move(Task $task, TaskGroup $group, ?int $position = null): Task
     {
@@ -22,26 +25,36 @@ class MoveTaskToGroup
             $fromGroupId = $task->group_id;
             $toGroupId = $group->id;
             $sameGroup = $fromGroupId === $toGroupId;
+            $unfiled = $task->project_id === null;
+            $projectId = $task->project_id ?? $group->project_id;
 
-            $sourceIds = $this->orderedTaskIds($task->project_id, $fromGroupId);
+            $sourceIds = $fromGroupId === null ? [] : $this->orderedTaskIds($projectId, $fromGroupId);
             $fromIndex = (int) array_search($task->id, $sourceIds, true);
 
-            $targetIds = $sameGroup ? $sourceIds : $this->orderedTaskIds($task->project_id, $toGroupId);
+            $targetIds = $sameGroup ? $sourceIds : $this->orderedTaskIds($projectId, $toGroupId);
             $targetIds = array_values(array_diff($targetIds, [$task->id]));
 
             $toIndex = $position === null ? count($targetIds) : min($position, count($targetIds));
 
             array_splice($targetIds, $toIndex, 0, [$task->id]);
 
-            if (! $sameGroup) {
-                $task->update(['group_id' => $toGroupId]);
+            $attributes = $sameGroup ? [] : ['group_id' => $toGroupId];
+
+            if ($unfiled) {
+                // Counted before the task itself joins the project.
+                $attributes['number'] = Task::withArchived()->where('project_id', $projectId)->count() + 1;
+                $attributes['project_id'] = $projectId;
+            }
+
+            if ($attributes !== []) {
+                $task->update($attributes);
             }
 
             Task::setNewOrder($targetIds);
 
             $sameGroup
-                ? TaskOrderChanged::dispatch($task->project_id, $toGroupId, $fromIndex, $toIndex)
-                : TaskGroupChanged::dispatch($task->project_id, $fromGroupId, $toGroupId, $fromIndex, $toIndex);
+                ? TaskOrderChanged::dispatch($projectId, $toGroupId, $fromIndex, $toIndex)
+                : TaskGroupChanged::dispatch($projectId, $fromGroupId, $toGroupId, $fromIndex, $toIndex);
 
             return $task->refresh();
         });

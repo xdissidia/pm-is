@@ -25,8 +25,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
         ->name('users.lookup');
 
     // Create and update take no {project}: it is inferred from the task group
-    // or the task itself.
-    Route::post('task-groups/{taskGroup}/tasks', [TaskController::class, 'store'])
+    // or the task itself. An optional task_group_id in the body decides where
+    // a new task lands — without one it is stored unfiled, with no project,
+    // group or number, until a later update moves it into a group.
+    Route::post('tasks', [TaskController::class, 'store'])
         ->name('tasks.store');
 
     Route::patch('tasks/{task}', [TaskController::class, 'update'])

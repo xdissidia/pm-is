@@ -99,16 +99,20 @@ it('pushes an edited description as the ticket body', function () {
     Http::assertSent(fn (Request $request) => $request['body'] === '<p>Antenna motor replaced.</p>');
 });
 
-it('closes the ticket when the task is completed, and reopens it', function () {
+it('closes and resolves the ticket when the task is completed, and reopens it', function () {
     $task = ($this->task)();
 
     (new UpdateTask)->update($task, ['completed_at' => now()]);
 
-    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::CLOSED->value);
+    // Completing resolves the ticket, not just closes it.
+    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::CLOSED->value
+        && $request['work_status'] === 'resolved');
 
     (new UpdateTask)->update($task->refresh(), ['completed_at' => null]);
 
-    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::OPEN->value);
+    // Un-completing puts the work back in play: ongoing, not resolved.
+    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::OPEN->value
+        && $request['work_status'] === 'ongoing');
 });
 
 it('follows the task between the storm and done columns', function () {
@@ -116,11 +120,22 @@ it('follows the task between the storm and done columns', function () {
 
     (new MoveTaskToGroup)->move($task, $this->doneGroup);
 
-    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::CLOSED->value);
+    // A bare move into Done closes the ticket but does not resolve it.
+    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::CLOSED->value
+        && ! isset($request['work_status']));
 
     (new MoveTaskToGroup)->move($task->refresh(), $this->stormGroup);
 
     Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::OPEN->value);
+});
+
+it('marks the ticket on-going on both fields when the task moves into a working column', function () {
+    $doing = TaskGroup::create(['project_id' => $this->project->id, 'name' => 'In Progress']);
+
+    (new MoveTaskToGroup)->move(($this->task)(), $doing);
+
+    Http::assertSent(fn (Request $request) => $request['status'] === StormTicketStatus::ON_GOING->value
+        && $request['work_status'] === 'ongoing');
 });
 
 it('uploads attachments added after the ticket was filed', function () {

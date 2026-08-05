@@ -126,7 +126,17 @@ class UpdateTaskRequest extends FormRequest
         $status = StormTicketStatus::tryFrom((string) $this->input('storm_ticket_status'));
         $project = $this->project();
 
-        if (! $status || ! $project) {
+        if (! $status) {
+            return;
+        }
+
+        // Nothing to look the group up in — the task is still unfiled.
+        if (! $project) {
+            $validator->errors()->add(
+                'storm_ticket_status',
+                'This task is not in a project yet — send task_group_id to file it into one.',
+            );
+
             return;
         }
 

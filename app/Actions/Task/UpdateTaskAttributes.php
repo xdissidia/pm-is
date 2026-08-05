@@ -53,8 +53,9 @@ class UpdateTaskAttributes
             }
 
             // A STORM ticket status picks the group by name instead of by id:
-            // Closed lands in "Done", anything still live goes to "STORM".
-            if (array_key_exists('storm_ticket_status', $changes)) {
+            // Closed lands in "Done", anything still live goes to "STORM". An
+            // unfiled task has no project to look those groups up in.
+            if (array_key_exists('storm_ticket_status', $changes) && $task->project_id !== null) {
                 $group = StormTicketStatus::from($changes['storm_ticket_status'])
                     ->taskGroupIn($task->project_id);
 

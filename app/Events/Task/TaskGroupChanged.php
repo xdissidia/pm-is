@@ -17,7 +17,8 @@ class TaskGroupChanged implements ShouldBroadcast
      */
     public function __construct(
         private int $projectId,
-        public int $fromGroupId,
+        // Null when the task was stored unfiled and is only now joining a board.
+        public ?int $fromGroupId,
         public int $toGroupId,
         public int $fromIndex,
         public int $toIndex,

@@ -104,6 +104,20 @@ window.Echo = new Echo({
   wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
   forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
   enabledTransports: ['ws', 'wss'],
+  // Channel auth goes through axios: pusher-js's own XHR never sends the
+  // X-XSRF-TOKEN header, so /broadcasting/auth (behind web middleware) would
+  // 419 on every subscribe — including each Pusher reconnect after idling.
+  authorizer: channel => ({
+    authorize: (socketId, callback) => {
+      axios
+        .post('/broadcasting/auth', {
+          socket_id: socketId,
+          channel_name: channel.name,
+        })
+        .then(response => callback(null, response.data))
+        .catch(error => callback(error));
+    },
+  }),
 });
 
 // dayjs
