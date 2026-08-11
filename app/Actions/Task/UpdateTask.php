@@ -39,7 +39,7 @@ class UpdateTask
         }
 
         if ($updateField === 'assignees') {
-            $task->assignees()->sync($data['assignees']);
+            $this->syncStormAssignees($task, $task->assignees()->sync($data['assignees']));
         }
 
         if ($updateField === 'labels') {
@@ -47,6 +47,34 @@ class UpdateTask
         }
 
         TaskUpdated::dispatch($task, $updateField);
+    }
+
+    /**
+     * Tell STORM when a ticketed task's assignees change, restating the whole
+     * list by employee number — the identifier both systems share, the same
+     * shape FileStormTicket files with. Assignees without a number cannot be
+     * stated and are left out. Pivot syncs fire no model events, so this
+     * cannot live in TaskObserver with the rest of the ticket sync.
+     *
+     * @param  array{attached: array<int, int>, detached: array<int, int>, updated: array<int, int>}  $changes
+     */
+    protected function syncStormAssignees(Task $task, array $changes): void
+    {
+        if (blank($task->storm_ticket_id) || StormSync::suspended()) {
+            return;
+        }
+
+        if (empty($changes['attached']) && empty($changes['detached'])) {
+            return;
+        }
+
+        $numbers = $task->assignees()
+            ->pluck('employee_number')
+            ->filter()
+            ->values()
+            ->all();
+
+        SyncStormTicket::dispatch($task, ['assignees' => $numbers]);
     }
 
     /**

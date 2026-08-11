@@ -63,8 +63,8 @@ it('creates a task with title, body, subscribers, assignees and uploads', functi
             'task_group_id' => $this->taskGroup->id,
             'title' => 'Task created over the API',
             'body' => '<p>Some rich text body</p>',
-            'assignees' => [$assignee->id],
-            'subscribers' => [$subscriber->id],
+            'assignees' => [$assignee->employee_number],
+            'subscribers' => [$subscriber->employee_number],
             'uploads' => [UploadedFile::fake()->create('spec.pdf', 12)],
         ]);
 
@@ -137,6 +137,17 @@ it('rejects an unknown task group', function () {
         ->assertJsonValidationErrors('task_group_id');
 });
 
+it('rejects an unknown employee number', function () {
+    $this->actingAs($this->user, 'sanctum')
+        ->postJson($this->url, [
+            'task_group_id' => $this->taskGroup->id,
+            'title' => 'Nope',
+            'assignees' => ['no-such-employee'],
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('assignees.0');
+});
+
 it('rejects users without access to the project', function () {
     $outsider = User::factory()->create();
     $outsider->assignRole('client');
@@ -145,7 +156,7 @@ it('rejects users without access to the project', function () {
         ->post($this->url, [
             'task_group_id' => $this->taskGroup->id,
             'title' => 'Nope',
-            'assignees' => [$outsider->id],
+            'assignees' => [$outsider->employee_number],
         ])
         ->assertStatus(422)
         ->assertJsonValidationErrors('assignees.0');

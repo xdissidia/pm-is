@@ -61,10 +61,12 @@ class StoreTaskRequest extends FormRequest
             'storm_ticket_work_status' => ['sometimes', 'string', Rule::enum(StormTicketWorkStatus::class)],
             'uploads' => ['nullable', 'array', 'max:20'],
             'uploads.*' => ['file', 'max:25600'],
+            // Members are stated by employee number, not PMIS user id — the
+            // identifier both systems share (see ValidatesTaskInput).
             'subscribers' => ['nullable', 'array'],
-            'subscribers.*' => ['integer', 'distinct', 'exists:users,id'],
+            'subscribers.*' => $this->memberItemRules(),
             'assignees' => ['nullable', 'array'],
-            'assignees.*' => ['integer', 'distinct', 'exists:users,id'],
+            'assignees.*' => $this->memberItemRules(),
         ];
     }
 

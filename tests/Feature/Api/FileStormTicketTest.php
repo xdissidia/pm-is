@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Task\CreateTask;
 use App\Enums\StormTicketStatus;
 use App\Models\ClientCompany;
 use App\Models\Project;
@@ -91,7 +92,7 @@ it('attaches assignees by employee number, without a user lookup', function () {
 
     Http::fake(['localhost:9000/api/v1/pmis/tickets' => Http::response(['data' => ['id' => 99]], 201)]);
 
-    ($this->createTask)($this->stormGroup, ['assignees' => [$assignee->id]])->assertCreated();
+    ($this->createTask)($this->stormGroup, ['assignees' => [$assignee->employee_number]])->assertCreated();
 
     Http::assertSent(fn (Request $request) => $request->url() === 'http://localhost:9000/api/v1/pmis/tickets'
         // The employee number, not a PMIS or STORM user id.
@@ -108,9 +109,20 @@ it('files the ticket unassigned when no assignee has an employee number', functi
 
     Http::fake(['localhost:9000/api/v1/pmis/tickets' => Http::response(['data' => ['id' => 99]], 201)]);
 
-    $response = ($this->createTask)($this->stormGroup, ['assignees' => [$assignee->id]])->assertCreated();
+    // Created through the action, like the web board would — the inbound API
+    // cannot address a user who has no employee number.
+    $task = (new CreateTask)->create($this->project, [
+        'group_id' => $this->stormGroup->id,
+        'name' => 'Radar is down',
+        'description' => '<p>No returns since 0300.</p>',
+        'due_on' => null,
+        'estimation' => null,
+        'hidden_from_clients' => false,
+        'billable' => true,
+        'assigned_users' => [$assignee->id],
+    ]);
 
-    expect(Task::findOrFail($response->json('data.id'))->storm_ticket_id)->toBe(99);
+    expect($task->fresh()->storm_ticket_id)->toBe(99);
 
     Http::assertSent(fn (Request $request) => $request->url() === 'http://localhost:9000/api/v1/pmis/tickets'
         && ! isset($request['assignees']));

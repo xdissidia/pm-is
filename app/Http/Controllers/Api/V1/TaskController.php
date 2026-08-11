@@ -55,8 +55,8 @@ class TaskController extends Controller
             'fixed_price' => null,
             'hidden_from_clients' => false,
             'billable' => true,
-            'assigned_users' => $request->validated('assignees', []),
-            'subscribed_users' => $request->validated('subscribers', []),
+            'assigned_users' => $request->memberIds('assignees') ?? [],
+            'subscribed_users' => $request->memberIds('subscribers') ?? [],
             'attachments' => $request->uploads(),
             // STORM keys its upload parts by its own attachment id.
             'attachment_storm_ids' => $request->uploadStormIds(),

@@ -5,8 +5,10 @@ namespace App\Http\Requests\Api\Concerns;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskGroup;
+use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
@@ -92,6 +94,34 @@ trait ValidatesTaskInput
     }
 
     /**
+     * Assignees and subscribers arrive as employee numbers — the identifier
+     * STORM knows users by, so it never has to learn PMIS user ids.
+     *
+     * @return array<int, mixed>
+     */
+    protected function memberItemRules(): array
+    {
+        return ['string', 'max:50', 'distinct', Rule::exists('users', 'employee_number')];
+    }
+
+    /**
+     * The user ids behind the employee numbers a field carries. Null when the
+     * field was not sent at all — an absent list is not an empty one.
+     *
+     * @return array<int, int>|null
+     */
+    public function memberIds(string $field): ?array
+    {
+        if (! array_key_exists($field, $this->validated())) {
+            return null;
+        }
+
+        $numbers = $this->validated($field) ?? [];
+
+        return User::whereIn('employee_number', $numbers)->pluck('id')->all();
+    }
+
+    /**
      * Assignees and subscribers must be able to see the project they are put
      * on — otherwise they get notified about a task they cannot open.
      */
@@ -105,12 +135,24 @@ trait ValidatesTaskInput
 
         $allowed = PermissionService::usersWithAccessToProject($project)->pluck('id');
 
+        $sent = collect(['assignees', 'subscribers'])
+            ->flatMap(fn (string $field) => (array) $this->input($field, []))
+            ->filter();
+
+        // Matched case-insensitively, like the exists rule under the usual
+        // MySQL collation.
+        $idsByNumber = User::whereIn('employee_number', $sent->all())
+            ->pluck('id', 'employee_number')
+            ->mapWithKeys(fn (int $id, string $number) => [Str::lower($number) => $id]);
+
         foreach (['assignees', 'subscribers'] as $field) {
-            foreach ((array) $this->input($field, []) as $index => $id) {
-                if (! $allowed->contains((int) $id)) {
+            foreach ((array) $this->input($field, []) as $index => $number) {
+                $id = $idsByNumber->get(Str::lower((string) $number));
+
+                if (! $allowed->contains($id)) {
                     $validator->errors()->add(
                         "$field.$index",
-                        "The user with ID $id does not have access to this project.",
+                        "The user with employee number $number does not have access to this project.",
                     );
                 }
             }

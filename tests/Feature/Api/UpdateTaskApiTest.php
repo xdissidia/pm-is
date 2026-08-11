@@ -91,8 +91,8 @@ it('replaces assignees and subscribers wholesale', function () {
 
     $this->actingAs($this->user, 'sanctum')
         ->patchJson($this->url, [
-            'assignees' => [$second->id],
-            'subscribers' => [$second->id],
+            'assignees' => [$second->employee_number],
+            'subscribers' => [$second->employee_number],
         ])
         ->assertOk()
         ->assertJsonPath('data.assignees.0.id', $second->id);
@@ -446,8 +446,8 @@ it('changes everything in one request', function () {
             '_method' => 'PATCH',
             'title' => 'Everything at once',
             'body' => '<p>New body</p>',
-            'assignees' => [$assignee->id],
-            'subscribers' => [$subscriber->id],
+            'assignees' => [$assignee->employee_number],
+            'subscribers' => [$subscriber->employee_number],
             'task_group_id' => $this->doneGroup->id,
             'completed' => true,
             'uploads' => [UploadedFile::fake()->create('evidence.pdf', 10)],
@@ -502,7 +502,7 @@ it('rejects an assignee without project access', function () {
     $outsider->assignRole('client');
 
     $this->actingAs($this->user, 'sanctum')
-        ->patchJson($this->url, ['assignees' => [$outsider->id]])
+        ->patchJson($this->url, ['assignees' => [$outsider->employee_number]])
         ->assertStatus(422)
         ->assertJsonValidationErrors('assignees.0');
 });

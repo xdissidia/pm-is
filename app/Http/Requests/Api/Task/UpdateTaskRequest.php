@@ -78,10 +78,12 @@ class UpdateTaskRequest extends FormRequest
             // ids are skipped, so a re-sent removal cannot fail.
             'remove_attachments' => ['sometimes', 'array'],
             'remove_attachments.*' => ['integer', 'distinct'],
+            // Members are stated by employee number, not PMIS user id — the
+            // identifier both systems share (see ValidatesTaskInput).
             'assignees' => ['sometimes', 'array'],
-            'assignees.*' => ['integer', 'distinct', 'exists:users,id'],
+            'assignees.*' => $this->memberItemRules(),
             'subscribers' => ['sometimes', 'array'],
-            'subscribers.*' => ['integer', 'distinct', 'exists:users,id'],
+            'subscribers.*' => $this->memberItemRules(),
             // Omitting it (or sending null) unfiles the task — STORM states
             // the ticket's group absolutely on every update.
             'task_group_id' => ['sometimes', 'nullable', 'integer', $this->taskGroupInProjectRule()],
@@ -119,11 +121,21 @@ class UpdateTaskRequest extends FormRequest
 
     /**
      * Only the fields actually present in the request, so an absent key is
-     * never confused with an explicit null.
+     * never confused with an explicit null. Assignees and subscribers come in
+     * as employee numbers and leave here as user ids — everything downstream
+     * still works in ids.
      */
     public function changes(): array
     {
-        return array_intersect_key($this->validated(), array_flip(self::UPDATABLE));
+        $changes = array_intersect_key($this->validated(), array_flip(self::UPDATABLE));
+
+        foreach (['assignees', 'subscribers'] as $field) {
+            if (array_key_exists($field, $changes)) {
+                $changes[$field] = $this->memberIds($field);
+            }
+        }
+
+        return $changes;
     }
 
     public function messages(): array

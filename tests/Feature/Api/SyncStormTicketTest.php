@@ -99,6 +99,66 @@ it('pushes an edited description as the ticket body', function () {
     Http::assertSent(fn (Request $request) => $request['body'] === '<p>Antenna motor replaced.</p>');
 });
 
+it('pushes the new assignee list onto the ticket by employee number', function () {
+    $assignee = User::factory()->create();
+
+    (new UpdateTask)->update(($this->task)(), ['assignees' => [$assignee->id]]);
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'PATCH'
+        && $request->url() === 'http://localhost:9000/api/v1/pmis/tickets/77'
+        && $request['assignees'] === [$assignee->employee_number]);
+});
+
+it('pushes an emptied assignee list when everyone is removed', function () {
+    $assignee = User::factory()->create();
+    $task = ($this->task)();
+
+    \App\Support\StormSync::withoutSyncing(fn () => (new UpdateTask)->update($task, ['assignees' => [$assignee->id]]));
+
+    (new UpdateTask)->update($task->refresh(), ['assignees' => []]);
+
+    Http::assertSent(fn (Request $request) => $request['assignees'] === []);
+});
+
+it('leaves assignees without an employee number out of the push', function () {
+    $numbered = User::factory()->create();
+    $unnumbered = User::factory()->create(['employee_number' => null]);
+
+    (new UpdateTask)->update(($this->task)(), ['assignees' => [$numbered->id, $unnumbered->id]]);
+
+    Http::assertSent(fn (Request $request) => $request['assignees'] === [$numbered->employee_number]);
+});
+
+it('says nothing when the assignee list is restated unchanged', function () {
+    $assignee = User::factory()->create();
+    $task = ($this->task)();
+
+    \App\Support\StormSync::withoutSyncing(fn () => (new UpdateTask)->update($task, ['assignees' => [$assignee->id]]));
+
+    Http::fake();
+
+    (new UpdateTask)->update($task->refresh(), ['assignees' => [$assignee->id]]);
+
+    Http::assertNothingSent();
+});
+
+it('does not echo an assignee change that came from storm', function () {
+    $assignee = User::factory()->create();
+    $assignee->assignRole('admin');
+    $task = ($this->task)();
+
+    $this->actingAs($this->user, 'sanctum')
+        ->patchJson("/api/v1/tasks/{$task->id}", [
+            'assignees' => [$assignee->employee_number],
+            'task_group_id' => $this->stormGroup->id,
+        ])
+        ->assertOk();
+
+    expect($task->refresh()->assignees->pluck('id')->all())->toBe([$assignee->id]);
+
+    Http::assertNothingSent();
+});
+
 it('resolves the ticket when the task is completed, and puts it back to ongoing when reopened', function () {
     $task = ($this->task)();
 
