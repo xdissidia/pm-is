@@ -12,6 +12,7 @@ class UpdateAuthUser
         $newData = [
             'name' => $data['name'],
             'job_title' => $data['job_title'],
+            'employee_number' => $data['employee_number'] ?? null,
             'phone' => $data['phone'],
             'email' => $data['email'],
             'default_project_tag_ids' => array_map('intval', $data['default_project_tag_ids'] ?? []),

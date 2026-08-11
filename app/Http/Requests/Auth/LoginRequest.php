@@ -91,6 +91,7 @@ class LoginRequest extends FormRequest
                         }
                         $user = (new CreateUser)->create([
                             'active_directory_guid' => $response['data']['guid'],
+                            'employee_number' => $response['data']['employee_number'],
                             'name' => $response['data']['name'],
                             'job_title' => $response['data']['position'],
                             'phone' => null,

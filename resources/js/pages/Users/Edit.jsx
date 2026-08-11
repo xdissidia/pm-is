@@ -31,6 +31,7 @@ const UserEdit = () => {
     _method: 'put',
     avatar: null,
     job_title: item.job_title,
+    employee_number: item.employee_number || '',
     name: item.name,
     phone: item.phone || '',
     rate: item.rate / 100,
@@ -131,6 +132,15 @@ const UserEdit = () => {
             value={form.data.job_title}
             onChange={e => updateValue('job_title', e.target.value)}
             error={form.errors.job_title}
+          />
+
+          <TextInput
+            label='Employee number'
+            placeholder='e.g. 2024-00123'
+            mt='md'
+            value={form.data.employee_number}
+            onChange={e => updateValue('employee_number', e.target.value)}
+            error={form.errors.employee_number}
           />
 
           <MultiSelect

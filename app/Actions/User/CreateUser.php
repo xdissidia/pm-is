@@ -17,6 +17,7 @@ class CreateUser
                 'active_directory_guid' => $data['active_directory_guid'] ?? null,
                 'name' => $data['name'],
                 'job_title' => $data['job_title'],
+                'employee_number' => $data['employee_number'] ?? null,
                 'phone' => $data['phone'],
                 'rate' => $data['rate'] * 100,
                 'email' => $data['email'],

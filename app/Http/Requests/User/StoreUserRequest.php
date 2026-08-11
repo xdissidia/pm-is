@@ -25,6 +25,7 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'job_title' => 'required|string',
+            'employee_number' => ['nullable', 'string', 'max:50', Rule::unique('users')],
             'name' => 'required|string',
             'phone' => 'string|nullable',
             'rate' => 'numeric|min:0',
