@@ -8,6 +8,7 @@ use App\Http\Requests\User\UpdateAuthUserRequest;
 use App\Http\Resources\User\AuthUserResource;
 use App\Models\ProjectTag;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ProfileController extends Controller
@@ -25,6 +26,26 @@ class ProfileController extends Controller
         (new UpdateAuthUser)->update($request->user(), $request->validated());
 
         return redirect()->back()->success('User updated', 'The user was successfully updated.');
+    }
+
+    public function editEmployeeNumber()
+    {
+        if (auth()->user()->employee_number !== null) {
+            return redirect()->route('dashboard');
+        }
+
+        return Inertia::render('Account/EmployeeNumber/Edit');
+    }
+
+    public function updateEmployeeNumber(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_number' => ['required', 'string', 'max:50', Rule::unique('users')->ignore(auth()->id())],
+        ]);
+
+        $request->user()->update($validated);
+
+        return redirect()->route('dashboard')->success('Employee number saved', 'Your employee number was successfully saved.');
     }
 
     public function updateDefaultProjectTags(Request $request)

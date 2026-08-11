@@ -19,7 +19,8 @@ import {
 } from '@mantine/core';
 
 const ProfileIndex = () => {
-  const { user, projectTags } = usePage().props;
+  const { auth, user, projectTags } = usePage().props;
+  const isClient = auth.user.roles.includes('client');
 
   const [form, submit, updateValue] = useForm('post', route('account.profile.update', user.id), {
     _method: 'put',
@@ -116,6 +117,7 @@ const ProfileIndex = () => {
           <TextInput
             label='Employee number'
             placeholder='e.g. 2024-00123'
+            required={!isClient}
             mt='md'
             value={form.data.employee_number}
             onChange={e => updateValue('employee_number', e.target.value)}

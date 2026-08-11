@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', 'dashboard');
 
-Route::group(['middleware' => ['auth:sanctum']], function () {
+Route::group(['middleware' => ['auth:sanctum', \App\Http\Middleware\RequireEmployeeNumber::class]], function () {
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -139,6 +139,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::put('default-project-tags', [ProfileController::class, 'updateDefaultProjectTags'])->name('default-project-tags.update');
+        Route::get('employee-number', [ProfileController::class, 'editEmployeeNumber'])->name('employee-number.edit');
+        Route::put('employee-number', [ProfileController::class, 'updateEmployeeNumber'])->name('employee-number.update');
     });
 
     // Notifications
