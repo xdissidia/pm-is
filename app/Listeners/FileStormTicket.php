@@ -7,7 +7,6 @@ use App\Events\Task\TaskCreated;
 use App\Models\Task;
 use App\Services\Storm\StormApiException;
 use App\Services\Storm\StormTicketService;
-use App\Services\Storm\StormUserDirectory;
 use App\Support\StormSync;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +25,6 @@ class FileStormTicket implements ShouldQueue
 
     public function __construct(
         protected StormTicketService $storm,
-        protected StormUserDirectory $directory,
     ) {}
 
     public function handle(TaskCreated $event): void
@@ -72,34 +70,21 @@ class FileStormTicket implements ShouldQueue
     }
 
     /**
-     * The ticket's assignees, as STORM's own user ids — PMIS ids mean nothing
-     * on that side, so the addresses are looked up first. The author goes into
-     * the same lookup: the ticket carries them as `pmis_user_id`/`author_email`
-     * for STORM to match on, but this is what records their STORM account.
+     * The ticket's assignees, by employee number — the one identifier both
+     * systems share, so there is no users/lookup round-trip to resolve STORM's
+     * own ids first. Assignees without a number are left for STORM's matching.
      *
-     * @return array{assignees?: array<int, int>}
+     * @return array{assignees?: array<int, string>}
      */
     protected function assignees(Task $task): array
     {
-        $assignees = $task->assignees;
-        $author = $task->createdByUser()->first();
+        $numbers = $task->assignees
+            ->pluck('employee_number')
+            ->filter()
+            ->values()
+            ->all();
 
-        try {
-            $resolved = $this->directory->resolve($author ? $assignees->concat([$author]) : $assignees);
-        } catch (StormApiException $e) {
-            // A directory that is down is not a reason to lose the ticket —
-            // file it unassigned and let STORM's own matching sort it out.
-            Log::warning("Looking up STORM users for task {$task->id} failed: {$e->getMessage()}", [
-                'task_id' => $task->id,
-                'status' => $e->status,
-            ]);
-
-            return [];
-        }
-
-        $ids = array_values(array_intersect_key($resolved, $assignees->pluck('id')->flip()->all()));
-
-        return empty($ids) ? [] : ['assignees' => $ids];
+        return empty($numbers) ? [] : ['assignees' => $numbers];
     }
 
     /**

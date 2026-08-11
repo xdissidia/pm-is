@@ -20,6 +20,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'employee_number' => fake()->unique()->numerify('######'),
             'phone' => fake()->phoneNumber(),
             'rate' => fake()->numberBetween(10, 50) * 100,
             'job_title' => fake()->randomElement(['Frontend Developer', 'Backend Developer', 'Fullstack Developer', 'Designer', 'Manager', 'Client']),

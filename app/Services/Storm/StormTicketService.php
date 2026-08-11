@@ -24,7 +24,7 @@ class StormTicketService extends StormClient
         'category_id',
         'task_group_id',
         'pmis_user_id',
-        'author_email',
+        'author_employee_number',
         'pmis_task_id',
         'section_id',
         'priority_id',
@@ -111,8 +111,8 @@ class StormTicketService extends StormClient
             'task_group_id' => $task->group_id,
             'pmis_user_id' => $task->created_by_user_id,
             // Queried rather than read off the relation: it is usually loaded
-            // with a narrow column list that leaves out the email.
-            'author_email' => $task->createdByUser()->value('email'),
+            // with a narrow column list that leaves out the employee number.
+            'author_employee_number' => $task->createdByUser()->value('employee_number'),
         ], $extra), $uploads);
     }
 
