@@ -56,10 +56,10 @@ class StormTicketService extends StormClient
     {
         $payload = $this->payload($ticket);
 
-        foreach (['title', 'body'] as $required) {
-            if (blank($payload[$required] ?? null)) {
-                throw new StormApiException("A STORM ticket needs a {$required}.");
-            }
+        // The title is the one field STORM insists on. The body is not: a task
+        // can be filed without a description, and STORM takes a null body.
+        if (blank($payload['title'] ?? null)) {
+            throw new StormApiException('A STORM ticket needs a title.');
         }
 
         return $this->ticket($this->send('post', $this->endpoint(), $payload, $uploads));

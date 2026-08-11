@@ -87,13 +87,23 @@ it('patches a ticket, and falls back to post + _method for uploads', function ()
 it('refuses to send an incomplete or empty payload', function () {
     Http::fake();
 
-    expect(fn () => $this->storm->create(['title' => 'No body']))
-        ->toThrow(StormApiException::class, 'needs a body');
+    expect(fn () => $this->storm->create(['body' => 'No title']))
+        ->toThrow(StormApiException::class, 'needs a title');
 
     expect(fn () => $this->storm->update(7, ['nothing' => 'storm knows about']))
         ->toThrow(StormApiException::class, 'Nothing to update');
 
     Http::assertNothingSent();
+});
+
+it('files a ticket without a body', function () {
+    Http::fake(['localhost:9000/*' => Http::response(['data' => ['id' => 9]], 201)]);
+
+    $ticket = $this->storm->create(['title' => 'No description yet']);
+
+    expect($ticket['id'])->toBe(9);
+
+    Http::assertSent(fn (Request $request) => $request['title'] === 'No description yet');
 });
 
 it('fails loudly without a token', function () {

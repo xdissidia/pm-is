@@ -86,6 +86,16 @@ it('files a storm ticket for a task created in the storm group', function () {
     });
 });
 
+it('files a ticket for a task created without a description', function () {
+    Http::fake(['localhost:9000/*' => Http::response(['data' => ['id' => 78]], 201)]);
+
+    $response = ($this->createTask)($this->stormGroup, ['body' => null])->assertCreated();
+
+    expect(Task::findOrFail($response->json('data.id'))->storm_ticket_id)->toBe(78);
+
+    Http::assertSent(fn (Request $request) => $request['title'] === 'Radar is down');
+});
+
 it('attaches assignees by employee number, without a user lookup', function () {
     $assignee = User::factory()->create(['employee_number' => '240187']);
     $assignee->assignRole('admin');
