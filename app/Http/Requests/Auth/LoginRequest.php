@@ -6,6 +6,7 @@ use App\Actions\User\CreateUser;
 use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -65,10 +66,14 @@ class LoginRequest extends FormRequest
      */
     public function ssoAuthenticate()
     {
-        $http = Http::withoutVerifying()->post('https://sso.pagasa.co/api/v1/auth', [
-            'username' => $this->email,
-            'password' => $this->password,
-        ]);
+        try {
+            $http = Http::withoutVerifying()->post('https://sso.pagasa.co/api/v1/auth', [
+                'username' => $this->email,
+                'password' => $this->password,
+            ]);
+        } catch (ConnectionException) {
+            return false;
+        }
 
         if ($http->successful()) {
             $response = $http->json();

@@ -23,6 +23,17 @@ export default function LoginNotification({ notify }) {
           No user was found with your Google email address.
         </Alert>
       )}
+      {notify === 'sso-employee-number-required' && (
+        <Alert
+          radius='md'
+          title='Login failed'
+          icon={<IconAlertTriangle />}
+          color='orange'
+        >
+          Your account could not be signed in through PAGASA SSO because it is not linked to a valid
+          employee number. Please contact your administrator.
+        </Alert>
+      )}
       {notify === 'social-login-failed' && (
         <Alert
           radius='md'

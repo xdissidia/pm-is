@@ -115,7 +115,11 @@ const Login = ({ notify }) => {
             justify='space-between'
             mt='lg'
           >
-            <Checkbox label='Remember me' />
+            <Checkbox
+              label='Remember me'
+              checked={form.data.remember}
+              onChange={e => form.setData('remember', e.currentTarget.checked)}
+            />
             <Anchor
               type='button'
               size='sm'
