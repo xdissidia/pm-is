@@ -80,7 +80,7 @@ const Login = ({ notify }) => {
               radius='md'
               fz='sm'
               fw={500}
-              onClick={() => emailRef.current?.focus()}
+              onClick={() => (window.location.href = route('auth.login.sso'))}
             >
               Sign in with PAGASA SSO
             </Button>

@@ -30,11 +30,10 @@ class SsoCallbackController extends Controller
         $profile = $response->json('user');
 
         $user = User::updateOrCreate(
-            ['username' => $profile['username']],
+            ['employee_number' => $profile['employee_number']],
             [
                 'name' => $profile['name'],
                 'email' => $profile['email'],
-                // map department/title to your own columns as needed
             ],
         );
 
