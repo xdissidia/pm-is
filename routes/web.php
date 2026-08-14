@@ -18,6 +18,7 @@ use App\Http\Controllers\Settings\ProjectTagController;
 use App\Http\Controllers\Settings\RoleController;
 use App\Http\Controllers\Settings\TaskPriorityController;
 use App\Http\Controllers\Task\AttachmentController;
+use App\Http\Controllers\Auth\SsoCallbackController;
 use App\Http\Controllers\Task\CommentController;
 use App\Http\Controllers\Task\GroupController;
 use App\Http\Controllers\Task\TimeLogController;
@@ -25,9 +26,11 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/sso/callback', SsoCallbackController::class)->name('sso.callback');
+
 Route::redirect('/', 'dashboard');
 
-Route::group(['middleware' => ['auth:sanctum', \App\Http\Middleware\RequireEmployeeNumber::class]], function () {
+Route::group(['middleware' => ['auth:sanctum', \App\Http\Middleware\RequireEmployeeNumber::class, \App\Http\Middleware\EnsureSsoAuthenticated::class]], function () {
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

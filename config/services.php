@@ -47,4 +47,10 @@ return [
         'timeout' => env('STORM_TIMEOUT', 20),
         'verify' => env('STORM_VERIFY_SSL', true),
     ],
+
+    'sso' => [
+        'url' => env('SSO_URL'),
+        'client_id' => env('SSO_CLIENT_ID'),
+        'client_secret' => env('SSO_CLIENT_SECRET'),
+    ],
 ];

@@ -1,10 +1,11 @@
-import GoogleIcon from '@/icons/GoogleIcon';
+import PagasaIcon from '@/icons/PagasaIcon';
 import ContainerBox from '@/layouts/ContainerBox';
 import GuestLayout from '@/layouts/GuestLayout';
 import { router } from '@inertiajs/react';
 import {
   Anchor,
   Button,
+  Center,
   Checkbox,
   Divider,
   Group,
@@ -14,12 +15,12 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from 'laravel-precognition-react-inertia';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import LoginNotification from './LoginNotification';
 import classes from './css/Login.module.css';
 
 const Login = ({ notify }) => {
-  const [socialLoginPending, setSocialLoginPending] = useState(false);
+  const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
   const form = useForm('post', route('auth.login.attempt'), {
@@ -38,11 +39,16 @@ const Login = ({ notify }) => {
 
   return (
     <>
+      <Center mb='lg'>
+        <PagasaIcon size={64} />
+      </Center>
+
       <Title
         ta='center'
+        fz={26}
         className={classes.title}
       >
-        Welcome back!
+        Project Management Information System
       </Title>
       <Text
         c='dimmed'
@@ -50,7 +56,7 @@ const Login = ({ notify }) => {
         ta='center'
         mt={5}
       >
-        You may login to your account below
+        Welcome back! You may login to your account below
       </Text>
 
       <LoginNotification notify={notify} />
@@ -68,15 +74,15 @@ const Login = ({ notify }) => {
             mt='md'
           >
             <Button
-              leftSection={<GoogleIcon />}
+              leftSection={<PagasaIcon />}
               variant='default'
-              radius='xl'
-              component='a'
-              href={route('auth.login.social.google')}
-              loading={socialLoginPending}
-              onClick={() => setSocialLoginPending(true)}
+              size='md'
+              radius='md'
+              fz='sm'
+              fw={500}
+              onClick={() => emailRef.current?.focus()}
             >
-              Google
+              Sign in with PAGASA SSO
             </Button>
           </Group>
 
@@ -87,6 +93,7 @@ const Login = ({ notify }) => {
           />
 
           <TextInput
+            ref={emailRef}
             label='Email'
             placeholder='Your email'
             required
@@ -131,6 +138,8 @@ const Login = ({ notify }) => {
   );
 };
 
-Login.layout = page => <GuestLayout title='Login'>{page}</GuestLayout>;
+Login.layout = page => (
+  <GuestLayout title='Project Management Information System'>{page}</GuestLayout>
+);
 
 export default Login;
